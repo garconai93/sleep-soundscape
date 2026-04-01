@@ -8,6 +8,7 @@ interface Sound {
   icon: string;
   audioUrl: string;
   color: string;
+  gradient: string;
 }
 
 interface Preset {
@@ -18,12 +19,12 @@ interface Preset {
 }
 
 const SOUNDS: Sound[] = [
-  { id: 'rain', name: 'Rain', icon: '🌧️', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2393/2393-preview.mp3', color: '#6366f1' },
-  { id: 'thunder', name: 'Thunder', icon: '⛈️', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1287/1287-preview.mp3', color: '#8b5cf6' },
-  { id: 'train', name: 'Train', icon: '🚂', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1630/1630-preview.mp3', color: '#3b82f6' },
-  { id: 'cafe', name: 'Cafe', icon: '☕', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/444/444-preview.mp3', color: '#f59e0b' },
-  { id: 'fire', name: 'Fire', icon: '🔥', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1345/1345-preview.mp3', color: '#ef4444' },
-  { id: 'wind', name: 'Wind', icon: '💨', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2608/2608-preview.mp3', color: '#06b6d4' },
+  { id: 'rain', name: 'Rain', icon: '🌧️', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2393/2393-preview.mp3', color: '#6366f1', gradient: 'from-indigo-500/20 to-blue-500/20' },
+  { id: 'thunder', name: 'Thunder', icon: '⛈️', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1287/1287-preview.mp3', color: '#8b5cf6', gradient: 'from-violet-500/20 to-purple-500/20' },
+  { id: 'train', name: 'Train', icon: '🚂', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1630/1630-preview.mp3', color: '#3b82f6', gradient: 'from-blue-500/20 to-cyan-500/20' },
+  { id: 'cafe', name: 'Cafe', icon: '☕', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/444/444-preview.mp3', color: '#f59e0b', gradient: 'from-amber-500/20 to-orange-500/20' },
+  { id: 'fire', name: 'Fire', icon: '🔥', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1345/1345-preview.mp3', color: '#ef4444', gradient: 'from-red-500/20 to-orange-500/20' },
+  { id: 'wind', name: 'Wind', icon: '💨', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2608/2608-preview.mp3', color: '#06b6d4', gradient: 'from-cyan-500/20 to-teal-500/20' },
 ];
 
 const DEFAULT_PRESETS: Preset[] = [
@@ -128,7 +129,6 @@ export default function SleepSoundscape() {
       audioRefs.current[soundId].volume = value / 100;
     }
 
-    // Auto-add layer when volume is adjusted above 0
     if (value > 0) {
       setActiveLayers(prev => {
         if (!prev.has(soundId)) {
@@ -169,7 +169,6 @@ export default function SleepSoundscape() {
     setVolumes(preset.volumes);
     setActivePreset(preset.id);
     
-    // Update gain nodes
     Object.entries(preset.volumes).forEach(([id, vol]) => {
       if (gainNodesRef.current[id]) {
         gainNodesRef.current[id].gain.value = vol / 100;
@@ -179,7 +178,6 @@ export default function SleepSoundscape() {
       }
     });
 
-    // Set active layers based on non-zero volumes
     const newLayers = new Set<string>();
     Object.entries(preset.volumes).forEach(([id, vol]) => {
       if (vol > 0) newLayers.add(id);
@@ -230,210 +228,332 @@ export default function SleepSoundscape() {
   const activeSounds = SOUNDS.filter(s => activeLayers.has(s.id));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white">
-      {/* Header */}
-      <header className="p-6 text-center">
-        <h1 className="text-3xl font-light tracking-wide mb-2">
-          <span className="text-indigo-400">Sleep</span>Soundscape
-        </h1>
-        <p className="text-slate-400 text-sm">Create your perfect ambient mix</p>
-      </header>
+    <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden font-sans">
+      {/* Aurora Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-violet-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-0 right-1/3 w-64 h-64 bg-pink-600/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 pb-32">
-        {/* Presets */}
-        <section className="mb-8">
-          <h2 className="text-xs uppercase tracking-widest text-slate-500 mb-3">Quick Presets</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {DEFAULT_PRESETS.map(preset => (
-              <button
-                key={preset.id}
-                onClick={() => applyPreset(preset)}
-                className={`p-4 rounded-2xl border transition-all ${
-                  activePreset === preset.id
-                    ? 'bg-indigo-600/30 border-indigo-500'
-                    : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-600'
-                }`}
-              >
-                <div className="text-2xl mb-1">{preset.icon}</div>
-                <div className="text-sm font-medium">{preset.name}</div>
-              </button>
-            ))}
-          </div>
-        </section>
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-950/50 to-slate-950 pointer-events-none"></div>
 
-        {/* Sound Layers */}
-        <section className="mb-8">
-          <h2 className="text-xs uppercase tracking-widest text-slate-500 mb-3">Sound Layers</h2>
-          <div className="space-y-3">
-            {SOUNDS.map(sound => {
-              const isActive = activeLayers.has(sound.id);
-              return (
-                <div
-                  key={sound.id}
-                  className={`p-4 rounded-2xl border transition-all ${
-                    isActive 
-                      ? 'bg-slate-800/70 border-indigo-500/50' 
-                      : 'bg-slate-800/30 border-slate-700/30'
-                  }`}
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Header */}
+        <header className="p-6 pt-10 text-center animate-fade-in">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-pink-400 bg-clip-text text-transparent">
+              Sleep
+            </span>
+            <span className="bg-gradient-to-r from-pink-400 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+              Soundscape
+            </span>
+          </h1>
+          <p className="text-slate-400 text-sm">Create your perfect ambient mix for sleep, focus & relaxation</p>
+        </header>
+
+        {/* Main Content */}
+        <main className="max-w-2xl mx-auto px-4 pb-40">
+          {/* Presets */}
+          <section className="mb-8">
+            <h2 className="text-xs uppercase tracking-widest text-slate-500 mb-4 font-medium">Quick Presets</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {DEFAULT_PRESETS.map((preset, i) => (
+                <button
+                  key={preset.id}
+                  onClick={() => applyPreset(preset)}
+                  className={`
+                    relative overflow-hidden p-5 rounded-2xl border backdrop-blur-xl transition-all duration-300
+                    transform hover:scale-105 hover:-translate-y-1
+                    ${activePreset === preset.id
+                      ? 'bg-gradient-to-br from-indigo-600/40 to-violet-600/40 border-indigo-500/50 shadow-lg shadow-indigo-500/20'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                    }
+                  `}
+                  style={{ animationDelay: `${i * 100}ms` }}
                 >
-                  <div className="flex items-center gap-4">
-                    {/* Toggle */}
-                    <button
-                      onClick={() => toggleLayer(sound.id)}
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all ${
-                        isActive 
-                          ? 'bg-indigo-600 shadow-lg shadow-indigo-500/30' 
-                          : 'bg-slate-700'
-                      }`}
-                      style={{ backgroundColor: isActive ? sound.color : undefined }}
-                    >
-                      {sound.icon}
-                    </button>
-                    
-                    {/* Info */}
-                    <div className="flex-1">
-                      <div className="font-medium">{sound.name}</div>
-                      <div className="text-xs text-slate-400">
-                        {isActive ? 'Active' : 'Tap to add'}
-                      </div>
-                    </div>
-
-                    {/* Volume Slider */}
-                    <div className="flex items-center gap-2 w-32">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={volumes[sound.id] || 0}
-                        onChange={(e) => updateVolume(sound.id, parseInt(e.target.value))}
-                        className="w-full h-1 accent-indigo-500"
-                        style={{ accentColor: sound.color }}
-                      />
-                      <span className="text-xs text-slate-400 w-8 text-right">
-                        {volumes[sound.id] || 0}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Active Mix Summary */}
-        {activeSounds.length > 0 && (
-          <section className="mb-8 p-4 rounded-2xl bg-slate-800/30 border border-slate-700/30">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-indigo-400">🎛️</span>
-              <span className="text-sm text-slate-300">Active Mix</span>
-              <span className="ml-auto text-xs text-slate-500">{activeSounds.length} layer{activeSounds.length > 1 ? 's' : ''}</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {activeSounds.map(s => (
-                <span 
-                  key={s.id} 
-                  className="px-3 py-1 rounded-full text-xs flex items-center gap-1"
-                  style={{ backgroundColor: `${s.color}20`, color: s.color }}
-                >
-                  {s.icon} {s.name}
-                </span>
+                  <div className={`text-3xl mb-2 ${activePreset === preset.id ? 'animate-bounce' : ''}`}>{preset.icon}</div>
+                  <div className={`text-sm font-semibold ${activePreset === preset.id ? 'text-indigo-200' : 'text-slate-300'}`}>{preset.name}</div>
+                </button>
               ))}
             </div>
           </section>
-        )}
 
-        {/* Freemium Badge */}
-        <section className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-700/30">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">⭐</span>
-            <div>
-              <div className="font-medium text-amber-200">Unlock All Features</div>
-              <div className="text-xs text-amber-300/60">
-                3 layers free • €4/month for unlimited + cloud sync
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+          {/* Wave Visualizer (when playing) */}
+          {isPlaying && activeLayers.size > 0 && (
+            <section className="mb-6 flex justify-center gap-1 items-end h-12">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="w-1.5 rounded-full bg-gradient-to-t from-indigo-500 to-violet-500 animate-pulse"
+                  style={{
+                    height: `${20 + Math.random() * 60}%`,
+                    animationDelay: `${i * 50}ms`,
+                    backgroundColor: activeSounds[i % activeSounds.length]?.color || '#6366f1'
+                  }}
+                />
+              ))}
+            </section>
+          )}
 
-      {/* Bottom Controls */}
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 p-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-          {/* Timer */}
-          <div className="relative">
-            <button
-              onClick={() => setTimerOpen(!timerOpen)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${
-                timer ? 'bg-indigo-600/30 text-indigo-300' : 'bg-slate-800 text-slate-400'
-              }`}
-            >
-              <span>⏰</span>
-              <span className="text-sm">
-                {timer ? formatTime(timerRemaining) : 'Timer'}
-              </span>
-            </button>
-            
-            {timerOpen && (
-              <div className="absolute bottom-full mb-2 left-0 bg-slate-800 rounded-xl border border-slate-700 p-2 shadow-xl min-w-36">
-                {timerOptions.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => startTimer(opt.value!)}
-                    className="block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-700"
+          {/* Sound Layers */}
+          <section className="mb-8">
+            <h2 className="text-xs uppercase tracking-widest text-slate-500 mb-4 font-medium">Sound Layers</h2>
+            <div className="space-y-3">
+              {SOUNDS.map((sound, i) => {
+                const isActive = activeLayers.has(sound.id);
+                return (
+                  <div
+                    key={sound.id}
+                    className={`
+                      relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-300
+                      ${isActive
+                        ? 'bg-gradient-to-br ' + sound.gradient + ' border-white/20 shadow-lg'
+                        : 'bg-white/5 border-white/10 hover:bg-white/[0.08]'
+                      }
+                    `}
+                    style={{ animationDelay: `${i * 50}ms` }}
                   >
-                    {opt.label}
-                  </button>
+                    <div className="p-4 flex items-center gap-4">
+                      {/* Toggle Button */}
+                      <button
+                        onClick={() => toggleLayer(sound.id)}
+                        className={`
+                          relative w-14 h-14 rounded-xl flex items-center justify-center text-2xl
+                          transition-all duration-300 transform hover:scale-110
+                          ${isActive
+                            ? 'shadow-lg'
+                            : 'bg-white/10 hover:bg-white/20'
+                          }
+                        `}
+                        style={{
+                          backgroundColor: isActive ? sound.color : undefined,
+                          boxShadow: isActive ? `0 0 30px ${sound.color}40` : undefined,
+                        }}
+                      >
+                        <span className={isActive ? 'animate-pulse' : ''}>{sound.icon}</span>
+                        {isActive && (
+                          <div
+                            className="absolute inset-0 rounded-xl animate-ping opacity-30"
+                            style={{ backgroundColor: sound.color }}
+                          />
+                        )}
+                      </button>
+                      
+                      {/* Info */}
+                      <div className="flex-1">
+                        <div className="font-semibold text-white/90">{sound.name}</div>
+                        <div className="text-xs" style={{ color: isActive ? sound.color : '#64748b' }}>
+                          {isActive ? '● Playing' : 'Tap to add'}
+                        </div>
+                      </div>
+
+                      {/* Volume Slider */}
+                      <div className="flex items-center gap-3 w-36">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={volumes[sound.id] || 0}
+                          onChange={(e) => updateVolume(sound.id, parseInt(e.target.value))}
+                          className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
+                          style={{
+                            background: `linear-gradient(to right, ${sound.color} ${volumes[sound.id] || 0}%, #334155 ${volumes[sound.id] || 0}%)`
+                          }}
+                        />
+                        <span className="text-xs w-8 text-right font-mono" style={{ color: isActive ? sound.color : '#64748b' }}>
+                          {volumes[sound.id] || 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Active Mix Summary */}
+          {activeSounds.length > 0 && (
+            <section className="mb-8 p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-indigo-400">🎛️</span>
+                <span className="text-sm font-semibold text-white/80">Active Mix</span>
+                <span className="ml-auto text-xs px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-300">{activeSounds.length} layer{activeSounds.length > 1 ? 's' : ''}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activeSounds.map(s => (
+                  <span 
+                    key={s.id} 
+                    className="px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-xl flex items-center gap-1.5"
+                    style={{ 
+                      backgroundColor: `${s.color}20`, 
+                      color: s.color,
+                      border: `1px solid ${s.color}30`
+                    }}
+                  >
+                    <span className="text-sm">{s.icon}</span>
+                    {s.name}
+                  </span>
                 ))}
               </div>
-            )}
+            </section>
+          )}
 
-            {timer && (
-              <button
-                onClick={cancelTimer}
-                className="ml-2 px-2 py-2 text-xs text-red-400 hover:bg-red-500/20 rounded-lg"
-              >
-                ✕
+          {/* Premium CTA */}
+          <section className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 backdrop-blur-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center text-2xl">
+                ⭐
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-amber-200">Unlock All Features</div>
+                <div className="text-xs text-amber-300/60 mt-0.5">
+                  3 layers free • €4/month for unlimited + cloud sync
+                </div>
+              </div>
+              <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-amber-950 font-semibold text-sm hover:opacity-90 transition-opacity">
+                Upgrade
               </button>
-            )}
-          </div>
+            </div>
+          </section>
+        </main>
 
-          {/* Play Button */}
-          <button
-            onClick={togglePlay}
-            disabled={activeLayers.size === 0}
-            className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all shadow-lg ${
-              activeLayers.size === 0
-                ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                : isPlaying
-                  ? 'bg-indigo-600 hover:bg-indigo-500'
-                  : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/30'
-            }`}
-          >
-            {activeLayers.size === 0 ? '🔇' : isPlaying ? '⏸️' : '▶️'}
-          </button>
+        {/* Bottom Controls */}
+        <div className="fixed bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-2xl border-t border-white/10 p-4 z-50">
+          <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+            {/* Timer */}
+            <div className="relative">
+              <button
+                onClick={() => setTimerOpen(!timerOpen)}
+                className={`
+                  flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all backdrop-blur-xl
+                  ${timer 
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' 
+                    : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                  }
+                `}
+              >
+                <span>⏰</span>
+                <span className="text-sm font-medium">
+                  {timer ? formatTime(timerRemaining) : 'Timer'}
+                </span>
+              </button>
+              
+              {timerOpen && (
+                <div className="absolute bottom-full mb-2 left-0 bg-slate-900/95 backdrop-blur-2xl rounded-xl border border-white/10 p-2 shadow-2xl min-w-40">
+                  {timerOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => startTimer(opt.value!)}
+                      className="block w-full text-left px-4 py-2.5 text-sm rounded-lg hover:bg-white/10 text-slate-300 transition-colors"
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          {/* Volume */}
-          <div className="flex items-center gap-2">
-            <span className="text-slate-400">🔊</span>
-            <div className="w-20">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                defaultValue={70}
-                className="w-full h-1 accent-white"
-                onChange={(e) => {
-                  const val = parseInt(e.target.value) / 100;
-                  Object.values(audioRefs.current).forEach(audio => {
-                    audio.volume = val;
-                  });
-                }}
-              />
+              {timer && (
+                <button
+                  onClick={cancelTimer}
+                  className="ml-2 px-2 py-2 text-xs text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Play Button */}
+            <button
+              onClick={togglePlay}
+              disabled={activeLayers.size === 0}
+              className={`
+                relative w-16 h-16 rounded-full flex items-center justify-center text-2xl
+                transition-all duration-300 transform
+                ${activeLayers.size === 0
+                  ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                  : isPlaying
+                    ? 'bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-2xl shadow-indigo-500/40 scale-105'
+                    : 'bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110'
+                }
+              `}
+            >
+              {activeLayers.size === 0 ? (
+                '🔇'
+              ) : isPlaying ? (
+                '⏸️'
+              ) : (
+                '▶️'
+              )}
+              {activeLayers.size > 0 && !isPlaying && (
+                <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-indigo-400" />
+              )}
+            </button>
+
+            {/* Volume */}
+            <div className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
+              <span className="text-slate-400">🔊</span>
+              <div className="w-24">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  defaultValue={70}
+                  className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                  style={{ background: 'linear-gradient(to right, #818cf8 70%, #334155 70%)' }}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    e.target.style.background = `linear-gradient(to right, #818cf8 ${val}%, #334155 ${val}%)`;
+                    Object.values(audioRefs.current).forEach(audio => {
+                      audio.volume = val / 100;
+                    });
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+          appearance: none;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          cursor: pointer;
+          border: none;
+        }
+      `}</style>
     </div>
   );
 }

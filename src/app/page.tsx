@@ -45,21 +45,22 @@ export default function SleepSoundscape() {
   const [timerRemaining, setTimerRemaining] = useState<number>(0);
   const [timerOpen, setTimerOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [masterVolume, setMasterVolume] = useState(70);
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodesRef = useRef<Record<string, GainNode>>({});
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const initialized = useRef(false);
 
   // Initialize audio elements
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || initialized.current) return;
+    initialized.current = true;
 
     SOUNDS.forEach(sound => {
       const audio = new Audio();
       audio.src = sound.audioUrl;
       audio.loop = true;
       audio.preload = 'auto';
-      audio.crossOrigin = 'anonymous';
+      audio.volume = (volumes[sound.id] || 0) / 100 * masterVolume / 100;
       audioRefs.current[sound.id] = audio;
     });
 
@@ -68,30 +69,15 @@ export default function SleepSoundscape() {
         audio.pause();
         audio.src = '';
       });
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
     };
   }, []);
 
-  // Setup Web Audio API for volume control
-  const setupAudioContext = useCallback(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-
-    SOUNDS.forEach(sound => {
-      if (!gainNodesRef.current[sound.id]) {
-        const audio = audioRefs.current[sound.id];
-        const source = audioContextRef.current!.createMediaElementSource(audio);
-        const gainNode = audioContextRef.current!.createGain();
-        source.connect(gainNode);
-        gainNode.connect(audioContextRef.current!.destination);
-        gainNode.gain.value = volumes[sound.id] / 100;
-        gainNodesRef.current[sound.id] = gainNode;
-      }
+  // Update volumes when they change
+  useEffect(() => {
+    Object.entries(audioRefs.current).forEach(([id, audio]) => {
+      audio.volume = (volumes[id] || 0) / 100 * masterVolume / 100;
     });
-  }, [volumes]);
+  }, [volumes, masterVolume]);
 
   // Handle play/pause
   const togglePlay = useCallback(async () => {
@@ -99,51 +85,54 @@ export default function SleepSoundscape() {
       Object.values(audioRefs.current).forEach(audio => audio.pause());
       setIsPlaying(false);
     } else {
+      // Resume audio context if needed (browser autoplay policy)
       try {
-        setupAudioContext();
-        if (audioContextRef.current?.state === 'suspended') {
-          await audioContextRef.current.resume();
-        }
+        const audios = Object.values(audioRefs.current);
+        await Promise.all(audios.map(audio => {
+          if (activeLayers.has(Object.keys(audioRefs.current).find(key => audioRefs.current[key] === audio) || '')) {
+            return audio.play().catch(() => {});
+          }
+          return Promise.resolve();
+        }));
+        
+        // Start playing active layers
         activeLayers.forEach(id => {
-          audioRefs.current[id].volume = (volumes[id] || 0) / 100;
-          audioRefs.current[id].play().catch(console.error);
+          if (audioRefs.current[id]) {
+            audioRefs.current[id].volume = (volumes[id] || 0) / 100 * masterVolume / 100;
+            audioRefs.current[id].play().catch(console.error);
+          }
         });
         setIsPlaying(true);
       } catch (e) {
         console.error('Playback error:', e);
       }
     }
-  }, [isPlaying, activeLayers, volumes, setupAudioContext]);
+  }, [isPlaying, activeLayers, volumes, masterVolume]);
 
-  // Update volume
+  // Update volume for a sound
   const updateVolume = useCallback((soundId: string, value: number) => {
-    const newVolumes = { ...volumes, [soundId]: value };
-    setVolumes(newVolumes);
+    setVolumes(prev => ({ ...prev, [soundId]: value }));
     setActivePreset(null);
 
-    if (gainNodesRef.current[soundId]) {
-      gainNodesRef.current[soundId].gain.value = value / 100;
-    }
-
     if (audioRefs.current[soundId]) {
-      audioRefs.current[soundId].volume = value / 100;
+      audioRefs.current[soundId].volume = value / 100 * masterVolume / 100;
     }
 
+    // Auto-add layer when volume > 0
     if (value > 0) {
       setActiveLayers(prev => {
         if (!prev.has(soundId)) {
           const newSet = new Set(prev);
           newSet.add(soundId);
-          if (isPlaying) {
-            audioRefs.current[soundId].volume = value / 100;
-            audioRefs.current[soundId]?.play().catch(console.error);
+          if (isPlaying && audioRefs.current[soundId]) {
+            audioRefs.current[soundId].play().catch(console.error);
           }
           return newSet;
         }
         return prev;
       });
     }
-  }, [volumes, isPlaying]);
+  }, [masterVolume, isPlaying]);
 
   // Toggle layer
   const toggleLayer = useCallback((soundId: string) => {
@@ -151,39 +140,45 @@ export default function SleepSoundscape() {
       const newSet = new Set(prev);
       if (newSet.has(soundId)) {
         newSet.delete(soundId);
-        if (isPlaying) audioRefs.current[soundId]?.pause();
-      } else {
-        if (isPlaying) {
-          audioRefs.current[soundId].volume = (volumes[soundId] || 0) / 100;
-          audioRefs.current[soundId]?.play().catch(console.error);
+        if (isPlaying && audioRefs.current[soundId]) {
+          audioRefs.current[soundId].pause();
         }
+      } else {
         newSet.add(soundId);
+        if (isPlaying && audioRefs.current[soundId]) {
+          audioRefs.current[soundId].volume = (volumes[soundId] || 0) / 100 * masterVolume / 100;
+          audioRefs.current[soundId].play().catch(console.error);
+        }
       }
       return newSet;
     });
     setActivePreset(null);
-  }, [isPlaying, volumes]);
+  }, [isPlaying, volumes, masterVolume]);
 
   // Apply preset
   const applyPreset = useCallback((preset: Preset) => {
     setVolumes(preset.volumes);
     setActivePreset(preset.id);
-    
+
+    // Update audio volumes and start playing active layers
     Object.entries(preset.volumes).forEach(([id, vol]) => {
-      if (gainNodesRef.current[id]) {
-        gainNodesRef.current[id].gain.value = vol / 100;
-      }
       if (audioRefs.current[id]) {
-        audioRefs.current[id].volume = vol / 100;
+        audioRefs.current[id].volume = vol / 100 * masterVolume / 100;
       }
     });
 
+    // Set active layers based on non-zero volumes and play them if already playing
     const newLayers = new Set<string>();
     Object.entries(preset.volumes).forEach(([id, vol]) => {
-      if (vol > 0) newLayers.add(id);
+      if (vol > 0) {
+        newLayers.add(id);
+        if (isPlaying && audioRefs.current[id]) {
+          audioRefs.current[id].play().catch(console.error);
+        }
+      }
     });
     setActiveLayers(newLayers);
-  }, []);
+  }, [masterVolume, isPlaying]);
 
   // Timer functions
   const startTimer = useCallback((minutes: number) => {
@@ -273,7 +268,6 @@ export default function SleepSoundscape() {
                       : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                     }
                   `}
-                  style={{ animationDelay: `${i * 100}ms` }}
                 >
                   <div className={`text-3xl mb-2 ${activePreset === preset.id ? 'animate-bounce' : ''}`}>{preset.icon}</div>
                   <div className={`text-sm font-semibold ${activePreset === preset.id ? 'text-indigo-200' : 'text-slate-300'}`}>{preset.name}</div>
@@ -288,11 +282,11 @@ export default function SleepSoundscape() {
               {[...Array(20)].map((_, i) => (
                 <div
                   key={i}
-                  className="w-1.5 rounded-full bg-gradient-to-t from-indigo-500 to-violet-500 animate-pulse"
+                  className="w-1.5 rounded-full animate-pulse"
                   style={{
                     height: `${20 + Math.random() * 60}%`,
                     animationDelay: `${i * 50}ms`,
-                    backgroundColor: activeSounds[i % activeSounds.length]?.color || '#6366f1'
+                    backgroundColor: activeSounds[i % Math.max(activeSounds.length, 1)]?.color || '#6366f1'
                   }}
                 />
               ))}
@@ -315,7 +309,6 @@ export default function SleepSoundscape() {
                         : 'bg-white/5 border-white/10 hover:bg-white/[0.08]'
                       }
                     `}
-                    style={{ animationDelay: `${i * 50}ms` }}
                   >
                     <div className="p-4 flex items-center gap-4">
                       {/* Toggle Button */}
@@ -324,10 +317,7 @@ export default function SleepSoundscape() {
                         className={`
                           relative w-14 h-14 rounded-xl flex items-center justify-center text-2xl
                           transition-all duration-300 transform hover:scale-110
-                          ${isActive
-                            ? 'shadow-lg'
-                            : 'bg-white/10 hover:bg-white/20'
-                          }
+                          ${isActive ? 'shadow-lg' : 'bg-white/10 hover:bg-white/20'}
                         `}
                         style={{
                           backgroundColor: isActive ? sound.color : undefined,
@@ -335,12 +325,6 @@ export default function SleepSoundscape() {
                         }}
                       >
                         <span className={isActive ? 'animate-pulse' : ''}>{sound.icon}</span>
-                        {isActive && (
-                          <div
-                            className="absolute inset-0 rounded-xl animate-ping opacity-30"
-                            style={{ backgroundColor: sound.color }}
-                          />
-                        )}
                       </button>
                       
                       {/* Info */}
@@ -481,13 +465,7 @@ export default function SleepSoundscape() {
                 }
               `}
             >
-              {activeLayers.size === 0 ? (
-                '🔇'
-              ) : isPlaying ? (
-                '⏸️'
-              ) : (
-                '▶️'
-              )}
+              {activeLayers.size === 0 ? '🔇' : isPlaying ? '⏸️' : '▶️'}
               {activeLayers.size > 0 && !isPlaying && (
                 <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-indigo-400" />
               )}
@@ -501,15 +479,13 @@ export default function SleepSoundscape() {
                   type="range"
                   min="0"
                   max="100"
-                  defaultValue={70}
+                  value={masterVolume}
                   className="w-full h-1 rounded-full appearance-none cursor-pointer"
-                  style={{ background: 'linear-gradient(to right, #818cf8 70%, #334155 70%)' }}
+                  style={{ background: `linear-gradient(to right, #818cf8 ${masterVolume}%, #334155 ${masterVolume}%)` }}
                   onChange={(e) => {
                     const val = parseInt(e.target.value);
+                    setMasterVolume(val);
                     e.target.style.background = `linear-gradient(to right, #818cf8 ${val}%, #334155 ${val}%)`;
-                    Object.values(audioRefs.current).forEach(audio => {
-                      audio.volume = val / 100;
-                    });
                   }}
                 />
               </div>
@@ -519,12 +495,6 @@ export default function SleepSoundscape() {
       </div>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        body {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-        
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }

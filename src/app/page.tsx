@@ -18,12 +18,12 @@ interface Preset {
 }
 
 const SOUNDS: Sound[] = [
-  { id: 'rain', name: 'Rain', icon: '🌧️', audioUrl: 'https://cdn.freesound.org/previews/531/531947_6383794-lq.mp3', color: '#6366f1' },
-  { id: 'thunder', name: 'Thunder', icon: '⛈️', audioUrl: 'https://cdn.freesound.org/previews/415/415209_4945028-lq.mp3', color: '#8b5cf6' },
-  { id: 'train', name: 'Train', icon: '🚂', audioUrl: 'https://cdn.freesound.org/previews/339/339895_5858296-lq.mp3', color: '#3b82f6' },
-  { id: 'cafe', name: 'Cafe', icon: '☕', audioUrl: 'https://cdn.freesound.org/previews/461/461082_7037-lq.mp3', color: '#f59e0b' },
-  { id: 'fire', name: 'Fire', icon: '🔥', audioUrl: 'https://cdn.freesound.org/previews/499/499157_9497060-lq.mp3', color: '#ef4444' },
-  { id: 'wind', name: 'Wind', icon: '💨', audioUrl: 'https://cdn.freesound.org/previews/615/615601_9497060-lq.mp3', color: '#06b6d4' },
+  { id: 'rain', name: 'Rain', icon: '🌧️', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2393/2393-preview.mp3', color: '#6366f1' },
+  { id: 'thunder', name: 'Thunder', icon: '⛈️', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1287/1287-preview.mp3', color: '#8b5cf6' },
+  { id: 'train', name: 'Train', icon: '🚂', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1630/1630-preview.mp3', color: '#3b82f6' },
+  { id: 'cafe', name: 'Cafe', icon: '☕', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/444/444-preview.mp3', color: '#f59e0b' },
+  { id: 'fire', name: 'Fire', icon: '🔥', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1345/1345-preview.mp3', color: '#ef4444' },
+  { id: 'wind', name: 'Wind', icon: '💨', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2608/2608-preview.mp3', color: '#06b6d4' },
 ];
 
 const DEFAULT_PRESETS: Preset[] = [
@@ -127,7 +127,23 @@ export default function SleepSoundscape() {
     if (audioRefs.current[soundId]) {
       audioRefs.current[soundId].volume = value / 100;
     }
-  }, [volumes]);
+
+    // Auto-add layer when volume is adjusted above 0
+    if (value > 0) {
+      setActiveLayers(prev => {
+        if (!prev.has(soundId)) {
+          const newSet = new Set(prev);
+          newSet.add(soundId);
+          if (isPlaying) {
+            audioRefs.current[soundId].volume = value / 100;
+            audioRefs.current[soundId]?.play().catch(console.error);
+          }
+          return newSet;
+        }
+        return prev;
+      });
+    }
+  }, [volumes, isPlaying]);
 
   // Toggle layer
   const toggleLayer = useCallback((soundId: string) => {
@@ -394,7 +410,7 @@ export default function SleepSoundscape() {
                   : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/30'
             }`}
           >
-            {isPlaying ? '⏸️' : '▶️'}
+            {activeLayers.size === 0 ? '🔇' : isPlaying ? '⏸️' : '▶️'}
           </button>
 
           {/* Volume */}

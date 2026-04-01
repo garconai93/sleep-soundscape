@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SleepSoundscape - Ambient Sound Mixer</title>
+  <meta name="description" content="Create your perfect ambient mix for sleep, focus and relaxation">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #020617;
+      --bg-secondary: rgba(255,255,255,0.05);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --border-color: rgba(255,255,255,0.1);
+      --accent: #6366f1;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: rgba(0,0,0,0.05);
+      --text-primary: #0f172a;
+      --text-secondary: #64748b;
+      --border-color: rgba(0,0,0,0.1);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* Aurora Background */
+    .aurora {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      animation: pulse 8s ease-in-out infinite;
+    }
+
+    .orb-1 {
+      width: 400px;
+      height: 400px;
+      background: rgba(99, 102, 241, 0.2);
+      top: 0;
+      left: 25%;
+    }
+
+    .orb-2 {
+      width: 350px;
+      height: 350px;
+      background: rgba(139, 92, 246, 0.2);
+      top: 30%;
+      right: 20%;
+      animation-delay: 1s;
+    }
+
+    .orb-3 {
+      width: 300px;
+      height: 300px;
+      background: rgba(6, 182, 212, 0.15);
+      bottom: 25%;
+      left: 30%;
+      animation-delay: 2s;
+    }
+
+    .orb-4 {
+      width: 280px;
+      height: 280px;
+      background: rgba(219, 39, 119, 0.15);
+      bottom: 0;
+      right: 25%;
+      animation-delay: 0.5s;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    /* Main Container */
+    .container {
+      position: relative;
+      z-index: 10;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 60px 20px 30px;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6, #fb923c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    .theme-toggle {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      cursor: pointer;
+      font-size: 1.4rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+      background: rgba(99, 102, 241, 0.2);
+    }
+
+    /* Sections */
+    section {
+      margin-bottom: 40px;
+    }
+
+    section h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    /* Presets */
+    .presets {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px 28px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      min-width: 110px;
+    }
+
+    .preset-btn:hover {
+      transform: translateY(-4px);
+      background: rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .preset-btn.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
+    }
+
+    .preset-btn .icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .preset-btn .name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Wave Visualizer */
+    .visualizer {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 4px;
+      height: 50px;
+      margin-bottom: 24px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .visualizer.active {
+      opacity: 1;
+    }
+
+    .bar {
+      width: 6px;
+      border-radius: 3px;
+      animation: wave 1s ease-in-out infinite;
+    }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.3); }
+      50% { transform: scaleY(1); }
+    }
+
+    /* Sound Layers */
+    .layers {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .layer {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.3s;
+    }
+
+    .layer:hover {
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .layer.active {
+      border-color: var(--layer-color, rgba(99, 102, 241, 0.5));
+      box-shadow: 0 0 24px var(--layer-color, rgba(99, 102, 241, 0.2));
+    }
+
+    .layer-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      border: none;
+      background: var(--bg-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .layer.active .layer-btn {
+      background: var(--layer-color);
+      box-shadow: 0 0 20px var(--layer-color);
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px var(--layer-color); }
+      50% { box-shadow: 0 0 35px var(--layer-color); }
+    }
+
+    .layer-info {
+      flex: 1;
+      text-align: center;
+    }
+
+    .layer-name {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 2px;
+    }
+
+    .layer-status {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .layer.active .layer-status {
+      color: var(--layer-color);
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 140px;
+    }
+
+    .volume-slider {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--bg-secondary);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid var(--accent);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .volume-value {
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: var(--text-secondary);
+      width: 32px;
+      text-align: right;
+    }
+
+    /* Active Mix */
+    .active-mix {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      display: none;
+    }
+
+    .active-mix.visible {
+      display: block;
+    }
+
+    .active-mix-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .active-mix-count {
+      background: rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+    }
+
+    .active-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .tag {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Premium CTA */
+    .premium {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(249, 115, 22, 0.1));
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .premium-icon {
+      font-size: 2rem;
+      width: 48px;
+      height: 48px;
+      background: rgba(245, 158, 11, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .premium-text {
+      flex: 1;
+    }
+
+    .premium-title {
+      font-weight: 600;
+      color: #fbbf24;
+      margin-bottom: 2px;
+    }
+
+    .premium-sub {
+      font-size: 0.8rem;
+      color: rgba(251, 191, 36, 0.7);
+    }
+
+    .premium-btn {
+      background: linear-gradient(135deg, #f59e0b, #ea580c);
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      color: #451a03;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .premium-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* Bottom Controls */
+    .controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-primary);
+      background: rgba(2, 6, 23, 0.9);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-color);
+      padding: 16px 20px;
+      z-index: 100;
+    }
+
+    .controls-inner {
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .timer-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 16px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.3s;
+    }
+
+    .timer-btn:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .timer-btn.active {
+      background: rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .play-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .play-btn:hover:not(:disabled) {
+      transform: scale(1.1);
+      box-shadow: 0 12px 40px rgba(99, 102, 241, 0.5);
+    }
+
+    .play-btn:disabled {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .master-vol {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 8px 12px;
+    }
+
+    .master-vol-slider {
+      width: 80px;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--bg-secondary);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .master-vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: white;
+      cursor: pointer;
+    }
+
+    /* Timer Dropdown */
+    .timer-dropdown {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      margin-bottom: 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 8px;
+      min-width: 140px;
+      display: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .timer-dropdown.open {
+      display: block;
+    }
+
+    .timer-option {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .timer-option:hover {
+      background: var(--bg-secondary);
+    }
+
+    /* Footer padding */
+    .footer-space {
+      height: 120px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Aurora Background -->
+  <div class="aurora">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>SleepSoundscape</h1>
+      <p>Create your perfect ambient mix for sleep, focus & relaxation</p>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">🌙</button>
+    </header>
+
+    <main>
+      <!-- Presets -->
+      <section>
+        <h2>Quick Presets</h2>
+        <div class="presets">
+          <button class="preset-btn" onclick="applyPreset('sleep')">
+            <span class="icon">🌙</span>
+            <span class="name">Sleep</span>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('focus')">
+            <span class="icon">🎯</span>
+            <span class="name">Focus</span>
+          </button>
+          <button class="preset-btn" onclick="applyPreset('relax')">
+            <span class="icon">🧘</span>
+            <span class="name">Relax</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Wave Visualizer -->
+      <div class="visualizer" id="visualizer"></div>
+
+      <!-- Sound Layers -->
+      <section>
+        <h2>Sound Layers</h2>
+        <div class="layers" id="layers"></div>
+      </section>
+
+      <!-- Active Mix -->
+      <div class="active-mix" id="activeMix">
+        <div class="active-mix-header">
+          <span>🎛️</span>
+          <span>Active Mix</span>
+          <span class="active-mix-count" id="layerCount">0</span>
+        </div>
+        <div class="active-tags" id="activeTags"></div>
+      </div>
+
+      <!-- Premium CTA -->
+      <section>
+        <div class="premium">
+          <div class="premium-icon">⭐</div>
+          <div class="premium-text">
+            <div class="premium-title">Unlock All Features</div>
+            <div class="premium-sub">3 layers free • €4/month for unlimited + cloud sync</div>
+          </div>
+          <button class="premium-btn">Upgrade</button>
+        </div>
+      </section>
+
+      <div class="footer-space"></div>
+    </main>
+  </div>
+
+  <!-- Bottom Controls -->
+  <div class="controls">
+    <div class="controls-inner">
+      <div style="position: relative;">
+        <button class="timer-btn" id="timerBtn" onclick="toggleTimer()">
+          <span>⏰</span>
+          <span id="timerDisplay">Timer</span>
+        </button>
+        <div class="timer-dropdown" id="timerDropdown">
+          <button class="timer-option" onclick="setTimer(15)">15 min</button>
+          <button class="timer-option" onclick="setTimer(30)">30 min</button>
+          <button class="timer-option" onclick="setTimer(60)">1 hour</button>
+          <button class="timer-option" onclick="setTimer(120)">2 hours</button>
+        </div>
+      </div>
+
+      <button class="play-btn" id="playBtn" onclick="togglePlay()" disabled>🔇</button>
+
+      <div class="master-vol">
+        <span>🔊</span>
+        <input type="range" class="master-vol-slider" id="masterVol" min="0" max="100" value="70" onchange="setMasterVolume(this.value)">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sound Configuration
+    const SOUNDS = [
+      { id: 'rain', name: 'Rain', icon: '🌧️', color: '#6366f1', url: 'https://assets.mixkit.co/active_storage/sfx/2393/2393-preview.mp3' },
+      { id: 'thunder', name: 'Thunder', icon: '⛈️', color: '#8b5cf6', url: 'https://assets.mixkit.co/active_storage/sfx/1287/1287-preview.mp3' },
+      { id: 'train', name: 'Train', icon: '🚂', color: '#3b82f6', url: 'https://assets.mixkit.co/active_storage/sfx/1630/1630-preview.mp3' },
+      { id: 'cafe', name: 'Cafe', icon: '☕', color: '#f59e0b', url: 'https://assets.mixkit.co/active_storage/sfx/444/444-preview.mp3' },
+      { id: 'fire', name: 'Fire', icon: '🔥', color: '#ef4444', url: 'https://assets.mixkit.co/active_storage/sfx/1345/1345-preview.mp3' },
+      { id: 'wind', name: 'Wind', icon: '💨', color: '#06b6d4', url: 'https://assets.mixkit.co/active_storage/sfx/2608/2608-preview.mp3' },
+    ];
+
+    const PRESETS = {
+      sleep: { rain: 70, thunder: 30, train: 0, cafe: 0, fire: 20, wind: 40 },
+      focus: { rain: 50, thunder: 0, train: 60, cafe: 40, fire: 0, wind: 20 },
+      relax: { rain: 30, thunder: 0, train: 0, cafe: 50, fire: 60, wind: 30 },
+    };
+
+    // State
+    let audioElements = {};
+    let volumes = {};
+    let activeLayers = new Set();
+    let isPlaying = false;
+    let masterVolume = 70;
+    let timerInterval = null;
+    let timerRemaining = 0;
+    let activePreset = null;
+
+    // Initialize
+    function init() {
+      // Load theme
+      const theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      document.querySelector('.theme-toggle').textContent = theme === 'dark' ? '🌙' : '☀️';
+
+      // Create audio elements
+      SOUNDS.forEach(sound => {
+        const audio = new Audio();
+        audio.src = sound.url;
+        audio.loop = true;
+        audio.preload = 'auto';
+        audio.volume = 0;
+        audioElements[sound.id] = audio;
+        volumes[sound.id] = 0;
+      });
+
+      // Render layers
+      renderLayers();
+      renderVisualizer();
+    }
+
+    function renderLayers() {
+      const container = document.getElementById('layers');
+      container.innerHTML = SOUNDS.map(sound => `
+        <div class="layer" id="layer-${sound.id}" style="--layer-color: ${sound.color}">
+          <button class="layer-btn" onclick="toggleLayer('${sound.id}')">${sound.icon}</button>
+          <div class="layer-info">
+            <div class="layer-name">${sound.name}</div>
+            <div class="layer-status" id="status-${sound.id}">Tap to add</div>
+          </div>
+          <div class="volume-control">
+            <input type="range" class="volume-slider" 
+              id="vol-${sound.id}"
+              min="0" max="100" value="0" 
+              style="background: linear-gradient(to right, ${sound.color} 0%, var(--bg-secondary) 0%)"
+              onchange="setVolume('${sound.id}', this.value)"
+              oninput="updateSlider(this, '${sound.color}')">
+            <span class="volume-value" id="val-${sound.id}">0</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderVisualizer() {
+      const container = document.getElementById('visualizer');
+      const colors = SOUNDS.map(s => s.color);
+      let bars = '';
+      for (let i = 0; i < 24; i++) {
+        const color = colors[i % colors.length];
+        const delay = i * 40;
+        const height = 15 + Math.random() * 60;
+        bars += `<div class="bar" style="height: ${height}%; background: ${color}; animation-delay: ${delay}ms;"></div>`;
+      }
+      container.innerHTML = bars;
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      document.querySelector('.theme-toggle').textContent = next === 'dark' ? '🌙' : '☀️';
+      localStorage.setItem('theme', next);
+    }
+
+    function toggleLayer(id) {
+      const sound = SOUNDS.find(s => s.id === id);
+      const layer = document.getElementById(`layer-${id}`);
+      const status = document.getElementById(`status-${id}`);
+
+      if (activeLayers.has(id)) {
+        activeLayers.delete(id);
+        layer.classList.remove('active');
+        status.textContent = 'Tap to add';
+        if (isPlaying) audioElements[id].pause();
+      } else {
+        activeLayers.add(id);
+        layer.classList.add('active');
+        status.textContent = '● Playing';
+        if (isPlaying) {
+          audioElements[id].volume = volumes[id] / 100 * masterVolume / 100;
+          audioElements[id].play().catch(e => console.log('Play error:', e));
+        }
+      }
+
+      updateActiveMix();
+      updatePlayButton();
+    }
+
+    function setVolume(id, value) {
+      volumes[id] = parseInt(value);
+      document.getElementById(`val-${id}`).textContent = value;
+      
+      const slider = document.getElementById(`vol-${id}`);
+      slider.style.background = `linear-gradient(to right, ${SOUNDS.find(s => s.id === id).color} ${value}%, var(--bg-secondary) ${value}%)`;
+
+      audioElements[id].volume = value / 100 * masterVolume / 100;
+
+      if (value > 0 && !activeLayers.has(id)) {
+        toggleLayer(id);
+      } else if (value == 0 && activeLayers.has(id)) {
+        toggleLayer(id);
+      }
+
+      activePreset = null;
+      updateActiveMix();
+    }
+
+    function updateSlider(slider, color) {
+      const value = slider.value;
+      slider.style.background = `linear-gradient(to right, ${color} ${value}%, var(--bg-secondary) ${value}%)`;
+    }
+
+    function applyPreset(name) {
+      const preset = PRESETS[name];
+      
+      // Update all volumes
+      Object.keys(preset).forEach(id => {
+        setVolume(id, preset[id]);
+      });
+
+      // Update UI
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.closest('.preset-btn').classList.add('active');
+      activePreset = name;
+    }
+
+    function updateActiveMix() {
+      const mix = document.getElementById('activeMix');
+      const count = document.getElementById('layerCount');
+      const tags = document.getElementById('activeTags');
+
+      if (activeLayers.size > 0) {
+        mix.classList.add('visible');
+        count.textContent = activeLayers.size;
+        tags.innerHTML = Array.from(activeLayers).map(id => {
+          const sound = SOUNDS.find(s => s.id === id);
+          return `<span class="tag" style="background: ${sound.color}20; color: ${sound.color}; border: 1px solid ${sound.color}30;">${sound.icon} ${sound.name}</span>`;
+        }).join('');
+      } else {
+        mix.classList.remove('visible');
+      }
+    }
+
+    function updatePlayButton() {
+      const btn = document.getElementById('playBtn');
+      if (activeLayers.size === 0) {
+        btn.disabled = true;
+        btn.textContent = '🔇';
+      } else {
+        btn.disabled = false;
+        btn.textContent = isPlaying ? '⏸️' : '▶️';
+      }
+    }
+
+    async function togglePlay() {
+      if (isPlaying) {
+        // Pause all
+        Object.values(audioElements).forEach(audio => audio.pause());
+        isPlaying = false;
+        document.getElementById('visualizer').classList.remove('active');
+      } else {
+        // Play all active layers
+        for (const id of activeLayers) {
+          audioElements[id].volume = volumes[id] / 100 * masterVolume / 100;
+          await audioElements[id].play().catch(e => console.log('Play error:', e));
+        }
+        isPlaying = true;
+        document.getElementById('visualizer').classList.add('active');
+        
+        // Update status
+        activeLayers.forEach(id => {
+          document.getElementById(`status-${id}`).textContent = '● Playing';
+        });
+      }
+      updatePlayButton();
+    }
+
+    function setMasterVolume(value) {
+      masterVolume = parseInt(value);
+      Object.keys(audioElements).forEach(id => {
+        audioElements[id].volume = volumes[id] / 100 * masterVolume / 100;
+      });
+    }
+
+    function toggleTimer() {
+      const dropdown = document.getElementById('timerDropdown');
+      dropdown.classList.toggle('open');
+    }
+
+    function setTimer(minutes) {
+      document.getElementById('timerDropdown').classList.remove('open');
+      
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+
+      timerRemaining = minutes * 60;
+      document.getElementById('timerBtn').classList.add('active');
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        timerRemaining--;
+        updateTimerDisplay();
+        
+        if (timerRemaining <= 0) {
+          clearInterval(timerInterval);
+          Object.values(audioElements).forEach(audio => audio.pause());
+          isPlaying = false;
+          updatePlayButton();
+          document.getElementById('visualizer').classList.remove('active');
+          document.getElementById('timerBtn').classList.remove('active');
+          document.getElementById('timerDisplay').textContent = 'Timer';
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(timerRemaining / 60);
+      const s = timerRemaining % 60;
+      document.getElementById('timerDisplay').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // Close timer dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const timerBtn = document.getElementById('timerBtn');
+      const timerDropdown = document.getElementById('timerDropdown');
+      if (!timerBtn.contains(e.target) && !timerDropdown.contains(e.target)) {
+        timerDropdown.classList.remove('open');
+      }
+    });
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

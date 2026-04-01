@@ -23,7 +23,7 @@ const SOUNDS: Sound[] = [
   { id: 'thunder', name: 'Thunder', icon: '⛈️', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3', color: '#c084fc', glow: 'rgba(192, 132, 252, 0.4)' },
   { id: 'train', name: 'Train', icon: '🚂', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1630/1630-preview.mp3', color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.4)' },
   { id: 'cafe', name: 'Cafe', icon: '☕', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/444/444-preview.mp3', color: '#fb923c', glow: 'rgba(251, 146, 60, 0.4)' },
-  { id: 'fire', name: 'Fire', icon: '🔥', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1153/1153-preview.mp3', color: '#f87171', glow: 'rgba(248, 113, 113, 0.4)' },
+  { id: 'fire', name: 'Fire', icon: '🔥', audioUrl: '/audio/fire.mp3', color: '#f87171', glow: 'rgba(248, 113, 113, 0.4)' },
   { id: 'wind', name: 'Wind', icon: '💨', audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3', color: '#22d3ee', glow: 'rgba(34, 211, 238, 0.4)' },
 ];
 

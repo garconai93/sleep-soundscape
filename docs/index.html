@@ -1537,11 +1537,7 @@ For "relaxing piano":
 
     async function toggleGeneratedLayer(id) {
       const layer = generatedLayers.find(l => l.id === id);
-      if (!layer) { console.log('Layer not found:', id); return; }
-
-      const layerEl = document.getElementById(`layer-${id}`);
-      const status = document.getElementById(`status-${id}`);
-      console.log('Before toggle - activeLayers.has(id):', activeLayers.has(id), 'layer.active:', layer.active, 'layerEl classes:', layerEl ? layerEl.className : 'NOT FOUND');
+      if (!layer) return;
 
       const layerEl = document.getElementById(`layer-${id}`);
       const status = document.getElementById(`status-${id}`);

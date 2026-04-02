@@ -1977,7 +1977,7 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
                   handleGeneratedSound(parsed);
                   addedCount++;
                 } catch(e) {
-                  console.error('[DEBUG handleGeneratedSound error]:', e);
+                  // DEBUG REMOVED handleGeneratedSound error]:', e);
                   addChatMessage(`⚠️ handleGeneratedSound error: ${e.message}`, 'error');
                 }
                 break;
@@ -1991,7 +1991,7 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
             }
           } catch (e) {
             // Invalid JSON, skip this one
-            console.error('[DEBUG JSON parse error]:', e);
+            // DEBUG REMOVED JSON parse error]:', e);
             addChatMessage(`⚠️ JSON parse error: ${e.message}`, 'error');
             continue;
           }
@@ -2005,7 +2005,7 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
         }
 
       } catch (e) {
-        console.error('[DEBUG processAIResponse outer error]:', e);
+        // DEBUG REMOVED processAIResponse outer error]:', e);
         addChatMessage(`⚠️ processAIResponse error: ${e.message}`, 'error');
       }
     }

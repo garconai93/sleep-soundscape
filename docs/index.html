@@ -1460,7 +1460,7 @@ For "relaxing piano":
         const isActive = activeLayers.has(layer.id);
         html += `
           <div class="layer generated ${isActive ? 'active' : ''}" id="layer-${layer.id}" style="--layer-color: #10b981">
-            <button class="layer-btn" onclick="alert('clicked: ${layer.id}')">${layer.icon || '🎵'}</button>
+            <button class="layer-btn" onclick="toggleGeneratedLayer('${layer.id}')">${layer.icon || '🎵'}</button>
             <div class="layer-info">
               <div class="layer-name">${layer.name}</div>
               <div class="layer-status" id="status-${layer.id}">${isActive ? '● Playing' : 'Tap to add'}</div>

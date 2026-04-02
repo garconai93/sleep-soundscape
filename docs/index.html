@@ -1148,16 +1148,38 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
       // Use soundType from parsed or from params
       const type = soundType || params.soundType || params.type;
       console.log('[DEBUG createGeneratedSound] type:', type, 'params:', params);
+      console.log('[DEBUG createGeneratedSound] Tone defined:', typeof Tone !== 'undefined');
+      console.log('[DEBUG createGeneratedSound] Tone.Noise:', typeof Tone.Noise);
       
       try {
+        // Ensure Tone context is started (requires user interaction)
+        if (Tone.context.state !== 'running') {
+          console.log('[DEBUG createGeneratedSound] Tone context not running, starting...');
+          Tone.start();
+        }
+        
         switch(type) {
           case 'noise':
-            source = new Tone.Noise(params.noiseType || 'pink').start();
-            toneNode = source;
+            console.log('[DEBUG createGeneratedSound] creating Noise with type:', params.noiseType);
+            // Map AI noise types to Tone.Noise types
+            const noiseMap = { 'white_noise': 'white', 'pink_noise': 'pink', 'brown_noise': 'brown' };
+            const noiseType = noiseMap[params.noiseType] || params.noiseType || 'pink';
+            console.log('[DEBUG createGeneratedSound] mapped noiseType:', noiseType);
+            const noise = new Tone.Noise(noiseType);
+            noise.toDestination();
+            noise.start();
+            toneNode = noise;
+            source = noise;
+            console.log('[DEBUG createGeneratedSound] Noise created, source:', source);
             break;
           case 'oscillator':
-            source = new Tone.Oscillator(params.frequency || 220, params.oscType || 'sine').start();
-            toneNode = source;
+            console.log('[DEBUG createGeneratedSound] creating Oscillator with freq:', params.frequency, 'type:', params.oscType);
+            const osc = new Tone.Oscillator(params.frequency || 220, params.oscType || 'sine');
+            osc.toDestination();
+            osc.start();
+            toneNode = osc;
+            source = osc;
+            console.log('[DEBUG createGeneratedSound] Oscillator created, source:', source);
             break;
           case 'membrane':
             toneNode = new Tone.MembraneSynth({
@@ -1191,9 +1213,11 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
             toneNode.triggerAttackRelease(params.pitch || 'C4', params.decay || 0.2);
             break;
           default:
-            console.log('Unknown soundType:', params.soundType);
+            console.log('[DEBUG createGeneratedSound] Unknown soundType:', type, 'params.soundType:', params.soundType);
             return null;
         }
+        
+        console.log('[DEBUG createGeneratedSound] after switch, toneNode:', toneNode, 'source:', source);
         
         // Apply effects chain
         let lastNode = toneNode;

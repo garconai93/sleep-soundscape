@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
   <style>
     * {
       margin: 0;
@@ -22,6 +23,10 @@
       --text-secondary: #94a3b8;
       --border-color: rgba(255,255,255,0.1);
       --accent: #6366f1;
+      --chat-bg: #0f172a;
+      --chat-header: #1e293b;
+      --chat-user: #3b82f6;
+      --chat-ai: #6366f1;
     }
 
     [data-theme="light"] {
@@ -30,6 +35,10 @@
       --text-primary: #0f172a;
       --text-secondary: #64748b;
       --border-color: rgba(0,0,0,0.1);
+      --chat-bg: #ffffff;
+      --chat-header: #f1f5f9;
+      --chat-user: #3b82f6;
+      --chat-ai: #6366f1;
     }
 
     body {
@@ -127,6 +136,12 @@
       margin-bottom: 24px;
     }
 
+    .header-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
     .theme-toggle {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
@@ -144,6 +159,252 @@
     .theme-toggle:hover {
       transform: scale(1.1);
       background: rgba(99, 102, 241, 0.2);
+    }
+
+    /* Chat Button */
+    .chat-toggle-btn {
+      position: fixed;
+      bottom: 100px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+      transition: all 0.3s;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-toggle-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 28px rgba(99, 102, 241, 0.5);
+    }
+
+    .chat-toggle-btn.has unread {
+      background: linear-gradient(135deg, #ef4444, #f97316);
+    }
+
+    /* Chat Modal */
+    .chat-modal {
+      position: fixed;
+      bottom: 170px;
+      right: 24px;
+      width: 380px;
+      height: 520px;
+      background: var(--chat-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      z-index: 300;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.3s ease;
+    }
+
+    .chat-modal.open {
+      display: flex;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .chat-header {
+      background: var(--chat-header);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .chat-header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .chat-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .chat-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .chat-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .chat-close:hover {
+      background: var(--bg-secondary);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-message {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      background: var(--chat-user);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.ai {
+      align-self: flex-start;
+      background: var(--chat-ai);
+      color: white;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-message.system {
+      align-self: center;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      text-align: center;
+      border-radius: 20px;
+      padding: 8px 16px;
+    }
+
+    .chat-message.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .chat-typing {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+      align-self: flex-start;
+    }
+
+    .chat-typing span {
+      width: 8px;
+      height: 8px;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .chat-typing span:nth-child(1) { animation-delay: 0s; }
+    .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    .chat-input-area {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      font-family: inherit;
+      resize: none;
+      max-height: 100px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--chat-ai);
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .chat-send {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .chat-send:hover:not(:disabled) {
+      transform: scale(1.05);
+    }
+
+    .chat-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     /* Sections */
@@ -258,6 +519,11 @@
       box-shadow: 0 0 24px var(--layer-color, rgba(99, 102, 241, 0.2));
     }
 
+    .layer.generated {
+      border-color: #10b981;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
     .layer-btn {
       width: 52px;
       height: 52px;
@@ -277,6 +543,11 @@
       background: var(--layer-color);
       box-shadow: 0 0 20px var(--layer-color);
       animation: glow 2s ease-in-out infinite;
+    }
+
+    .layer.generated .layer-btn {
+      background: #10b981;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
     }
 
     @keyframes glow {
@@ -302,6 +573,39 @@
 
     .layer.active .layer-status {
       color: var(--layer-color);
+    }
+
+    .layer.generated .layer-status {
+      color: #10b981;
+    }
+
+    .layer-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .layer-remove {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .layer.generated .layer-remove {
+      display: flex;
+    }
+
+    .layer-remove:hover {
+      background: rgba(239, 68, 68, 0.2);
     }
 
     .volume-control {
@@ -590,6 +894,16 @@
     .footer-space {
       height: 120px;
     }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .chat-modal {
+        width: calc(100vw - 32px);
+        right: 16px;
+        bottom: 160px;
+        height: 450px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -605,7 +919,9 @@
     <header>
       <h1>SleepSoundscape</h1>
       <p>Create your perfect ambient mix for sleep, focus & relaxation</p>
-      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">🌙</button>
+      <div class="header-controls">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">🌙</button>
+      </div>
     </header>
 
     <main>
@@ -663,6 +979,30 @@
     </main>
   </div>
 
+  <!-- Chat Button -->
+  <button class="chat-toggle-btn" id="chatToggleBtn" onclick="toggleChat()">💬</button>
+
+  <!-- Chat Modal -->
+  <div class="chat-modal" id="chatModal">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <div class="chat-avatar">🤖</div>
+        <div>
+          <div class="chat-title">AI Sound Designer</div>
+          <div class="chat-subtitle">Create custom soundscapes</div>
+        </div>
+      </div>
+      <button class="chat-close" onclick="toggleChat()">✕</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-message system">👋 Hi! Tell me what kind of atmosphere you want, and I'll create it for your mix!</div>
+    </div>
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chatInput" placeholder="Describe your perfect soundscape..." rows="1" onkeydown="handleChatKeydown(event)"></textarea>
+      <button class="chat-send" id="chatSendBtn" onclick="sendChatMessage()">➤</button>
+    </div>
+  </div>
+
   <!-- Bottom Controls -->
   <div class="controls">
     <div class="controls-inner">
@@ -692,6 +1032,24 @@
   </div>
 
   <script>
+    // Gemini API Configuration
+    const GEMINI_API_KEY = 'AIzaSyAXyM0N156ub-NqbpFEnffDRoGvSgmbTAQ';
+    const GEMINI_MODEL = 'gemini-2.0-flash';
+    const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+    const GEMINI_SYSTEM_PROMPT = `You are an AI assistant for SleepSoundscape, a web app that creates ambient soundscapes by layering sounds.
+
+SOUNDS AVAILABLE: Rain, Heavy Rain, Thunder, Wind, Fire Crackling, Birds, Ocean Waves, Forest, Night Crickets, River Stream, White Noise, Brown Noise, Pink Noise, Cafe Murmur, Train, Airplane, Heartbeat, Bowls, Tambura
+
+Each sound has parameters: volume (0-1), detune (-1200 to 1200), reverb (0-1), echo (0-1), playbackRate (0.5-2.0), loop (bool)
+
+MUSIC: Use Tone.Synth/PolySynth for melodies. Parameters: notes (array like ["C4","E4"]), duration, tempo, volume.
+
+Respond ONLY with valid JSON:
+- For sounds: {"type": "layer", "sound": "rain", "params": {"volume": 0.7, "reverb": 0.5, "echo": 0.2}}
+- For music: {"type": "music", "instrument": "synth", "notes": ["C4","G4","C5"], "duration": "4n", "tempo": 60, "volume": 0.4}
+- If unclear: {"type": "clarify", "message": "what do you mean?"}`;
+
     // Sound Configuration
     const SOUNDS = [
       { id: 'rain', name: 'Rain', icon: '🌧️', color: '#6366f1', url: 'https://assets.mixkit.co/active_storage/sfx/2393/2393-preview.mp3' },
@@ -704,6 +1062,29 @@
       { id: 'study', name: 'Study', icon: '📖', color: '#ec4899', url: './audio/study.mp3' },
       { id: 'work', name: 'Work', icon: '💼', color: '#f97316', url: './audio/work.mp3' },
     ];
+
+    // Map user-friendly names to sound IDs
+    const SOUND_NAME_MAP = {
+      'rain': 'rain', 'light rain': 'rain', 'ploaie': 'rain',
+      'heavy rain': 'thunder', 'ploaie torențială': 'thunder',
+      'thunder': 'thunder', 'tunet': 'thunder',
+      'wind': 'wind', 'vânt': 'wind',
+      'fire': 'fire', 'foc': 'fire', 'fire crackling': 'fire',
+      'birds': 'cafe', 'păsări': 'cafe',
+      'ocean': 'train', 'ocean waves': 'train', 'valuri': 'train',
+      'forest': 'reading', 'pădure': 'reading',
+      'night crickets': 'study', 'crickets': 'study', 'greieri': 'study',
+      'river': 'work', 'river stream': 'work', 'râu': 'work',
+      'white noise': 'wind',
+      'brown noise': 'rain',
+      'pink noise': 'thunder',
+      'cafe': 'cafe', 'cafe murmur': 'cafe', 'cafenea': 'cafe',
+      'train': 'train', 'tren': 'train',
+      'airplane': 'rain', 'airplane cabin': 'rain',
+      'heartbeat': 'thunder',
+      'bowls': 'cafe', 'singing bowls': 'cafe',
+      'tambura': 'reading', 'tambura drone': 'reading'
+    };
 
     const PRESETS = {
       sleep: { rain: 0, thunder: 40, train: 0, cafe: 0, fire: 0, wind: 20, reading: 0, study: 0, work: 0 },
@@ -720,6 +1101,16 @@
     let timerInterval = null;
     let timerRemaining = 0;
     let activePreset = null;
+
+    // Generated layers state
+    let generatedLayers = [];
+    let generatedLayerCounter = 0;
+    let synths = [];
+
+    // Chat state
+    let isChatOpen = false;
+    let isTyping = false;
+    let chatHistory = [];
 
     // Initialize
     function init() {
@@ -739,15 +1130,53 @@
         volumes[sound.id] = 0;
       });
 
+      // Load generated layers from localStorage
+      loadGeneratedLayers();
+
       // Render layers
       renderLayers();
       renderVisualizer();
+
+      // Start Tone.js
+      initTone();
+    }
+
+    async function initTone() {
+      try {
+        await Tone.start();
+        console.log('Tone.js initialized');
+      } catch (e) {
+        console.log('Tone.js init:', e);
+      }
+    }
+
+    function loadGeneratedLayers() {
+      try {
+        const saved = localStorage.getItem('ss_generated_layers');
+        if (saved) {
+          generatedLayers = JSON.parse(saved);
+          generatedLayers.forEach(layer => {
+            if (layer.active) {
+              activeLayers.add(layer.id);
+            }
+          });
+        }
+      } catch (e) {
+        console.log('Failed to load generated layers:', e);
+        generatedLayers = [];
+      }
+    }
+
+    function saveGeneratedLayers() {
+      localStorage.setItem('ss_generated_layers', JSON.stringify(generatedLayers));
     }
 
     function renderLayers() {
       const container = document.getElementById('layers');
-      container.innerHTML = SOUNDS.map(sound => `
-        <div class="layer" id="layer-${sound.id}" style="--layer-color: ${sound.color}">
+      
+      // Render built-in sounds
+      let html = SOUNDS.map(sound => `
+        <div class="layer ${activeLayers.has(sound.id) ? 'active' : ''}" id="layer-${sound.id}" style="--layer-color: ${sound.color}">
           <button class="layer-btn" onclick="toggleLayer('${sound.id}')">${sound.icon}</button>
           <div class="layer-info">
             <div class="layer-name">${sound.name}</div>
@@ -756,14 +1185,44 @@
           <div class="volume-control">
             <input type="range" class="volume-slider" 
               id="vol-${sound.id}"
-              min="0" max="100" value="0" 
-              style="background: linear-gradient(to right, ${sound.color} 0%, var(--bg-secondary) 0%)"
+              min="0" max="100" value="${volumes[sound.id]}" 
+              style="background: linear-gradient(to right, ${sound.color} ${volumes[sound.id]}%, var(--bg-secondary) ${volumes[sound.id]}%)"
               onchange="setVolume('${sound.id}', this.value)"
               oninput="updateSlider(this, '${sound.color}')">
-            <span class="volume-value" id="val-${sound.id}">0</span>
+            <span class="volume-value" id="val-${sound.id}">${volumes[sound.id]}</span>
           </div>
         </div>
       `).join('');
+
+      // Render generated layers
+      generatedLayers.forEach(layer => {
+        const isActive = activeLayers.has(layer.id);
+        html += `
+          <div class="layer generated ${isActive ? 'active' : ''}" id="layer-${layer.id}" style="--layer-color: #10b981">
+            <button class="layer-btn" onclick="toggleGeneratedLayer('${layer.id}')">${layer.icon || '🎵'}</button>
+            <div class="layer-info">
+              <div class="layer-name">${layer.name}</div>
+              <div class="layer-status" id="status-${layer.id}">${isActive ? '● Playing' : 'Tap to add'}</div>
+            </div>
+            <div class="layer-controls">
+              <button class="layer-remove" onclick="removeGeneratedLayer('${layer.id}')">✕</button>
+              <div class="volume-control">
+                <input type="range" class="volume-slider" 
+                  id="vol-${layer.id}"
+                  min="0" max="100" value="${layer.volume * 100}" 
+                  style="background: linear-gradient(to right, #10b981 ${layer.volume * 100}%, var(--bg-secondary) ${layer.volume * 100}%)"
+                  onchange="setGeneratedLayerVolume('${layer.id}', this.value)"
+                  oninput="updateSlider(this, '#10b981')">
+                <span class="volume-value" id="val-${layer.id}">${Math.round(layer.volume * 100)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      updatePlayButton();
+      updateActiveMix();
     }
 
     function renderVisualizer() {
@@ -811,6 +1270,87 @@
       updatePlayButton();
     }
 
+    function toggleGeneratedLayer(id) {
+      const layer = generatedLayers.find(l => l.id === id);
+      if (!layer) return;
+
+      const layerEl = document.getElementById(`layer-${id}`);
+      const status = document.getElementById(`status-${id}`);
+
+      if (activeLayers.has(id)) {
+        activeLayers.delete(id);
+        layer.active = false;
+        layerEl.classList.remove('active');
+        status.textContent = 'Tap to add';
+        if (layer.audioElement && isPlaying) {
+          layer.audioElement.pause();
+        }
+        if (layer.synth && isPlaying) {
+          layer.synth.dispose();
+        }
+      } else {
+        activeLayers.add(id);
+        layer.active = true;
+        layerEl.classList.add('active');
+        status.textContent = '● Playing';
+        
+        if (layer.type === 'music' && layer.synth) {
+          if (isPlaying) {
+            try {
+              layer.synth.triggerAttackRelease(layer.notes, layer.duration, Tone.now(), layer.tempo / 60);
+            } catch (e) {
+              console.log('Synth play error:', e);
+            }
+          }
+        } else if (layer.audioElement) {
+          if (isPlaying) {
+            layer.audioElement.volume = layer.volume * masterVolume / 100;
+            layer.audioElement.play().catch(e => console.log('Play error:', e));
+          }
+        }
+      }
+
+      saveGeneratedLayers();
+      updateActiveMix();
+      updatePlayButton();
+    }
+
+    function setGeneratedLayerVolume(id, value) {
+      const layer = generatedLayers.find(l => l.id === id);
+      if (!layer) return;
+
+      layer.volume = value / 100;
+      document.getElementById(`val-${id}`).textContent = value;
+      
+      const slider = document.getElementById(`vol-${id}`);
+      slider.style.background = `linear-gradient(to right, #10b981 ${value}%, var(--bg-secondary) ${value}%)`;
+
+      if (layer.audioElement) {
+        layer.audioElement.volume = layer.volume * masterVolume / 100;
+      }
+
+      saveGeneratedLayers();
+    }
+
+    function removeGeneratedLayer(id) {
+      const layer = generatedLayers.find(l => l.id === id);
+      if (!layer) return;
+
+      // Stop if playing
+      if (activeLayers.has(id)) {
+        activeLayers.delete(id);
+        if (layer.audioElement) layer.audioElement.pause();
+        if (layer.synth) layer.synth.dispose();
+      }
+
+      // Remove from list
+      generatedLayers = generatedLayers.filter(l => l.id !== id);
+      saveGeneratedLayers();
+
+      // Re-render
+      renderLayers();
+    }
+
     function setVolume(id, value) {
       volumes[id] = parseInt(value);
       document.getElementById(`val-${id}`).textContent = value;
@@ -854,13 +1394,17 @@
       const count = document.getElementById('layerCount');
       const tags = document.getElementById('activeTags');
 
-      if (activeLayers.size > 0) {
+      const allLayers = [
+        ...SOUNDS.filter(s => activeLayers.has(s.id)).map(s => ({ ...s, isGenerated: false })),
+        ...generatedLayers.filter(l => activeLayers.has(l.id)).map(l => ({ ...l, isGenerated: true, color: '#10b981' }))
+      ];
+
+      if (allLayers.length > 0) {
         mix.classList.add('visible');
-        count.textContent = activeLayers.size;
-        tags.innerHTML = Array.from(activeLayers).map(id => {
-          const sound = SOUNDS.find(s => s.id === id);
-          return `<span class="tag" style="background: ${sound.color}20; color: ${sound.color}; border: 1px solid ${sound.color}30;">${sound.icon} ${sound.name}</span>`;
-        }).join('');
+        count.textContent = allLayers.length;
+        tags.innerHTML = allLayers.map(s => 
+          `<span class="tag" style="background: ${s.color}20; color: ${s.color}; border: 1px solid ${s.color}30;">${s.icon} ${s.name}</span>`
+        ).join('');
       } else {
         mix.classList.remove('visible');
       }
@@ -881,20 +1425,46 @@
       if (isPlaying) {
         // Pause all
         Object.values(audioElements).forEach(audio => audio.pause());
+        
+        // Pause generated audio
+        generatedLayers.forEach(layer => {
+          if (layer.audioElement) layer.audioElement.pause();
+        });
+
         isPlaying = false;
         document.getElementById('visualizer').classList.remove('active');
       } else {
         // Play all active layers
         for (const id of activeLayers) {
-          audioElements[id].volume = volumes[id] / 100 * masterVolume / 100;
-          await audioElements[id].play().catch(e => console.log('Play error:', e));
+          if (audioElements[id]) {
+            audioElements[id].volume = volumes[id] / 100 * masterVolume / 100;
+            await audioElements[id].play().catch(e => console.log('Play error:', e));
+          }
         }
+
+        // Play generated layers
+        generatedLayers.forEach(layer => {
+          if (activeLayers.has(layer.id)) {
+            if (layer.type === 'music' && layer.synth) {
+              try {
+                layer.synth.triggerAttackRelease(layer.notes, layer.duration, Tone.now(), layer.tempo / 60);
+              } catch (e) {
+                console.log('Synth play error:', e);
+              }
+            } else if (layer.audioElement) {
+              layer.audioElement.volume = layer.volume * masterVolume / 100;
+              layer.audioElement.play().catch(e => console.log('Play error:', e));
+            }
+          }
+        });
+
         isPlaying = true;
         document.getElementById('visualizer').classList.add('active');
         
         // Update status
         activeLayers.forEach(id => {
-          document.getElementById(`status-${id}`).textContent = '● Playing';
+          const statusEl = document.getElementById(`status-${id}`);
+          if (statusEl) statusEl.textContent = '● Playing';
         });
       }
       updatePlayButton();
@@ -904,6 +1474,11 @@
       masterVolume = parseInt(value);
       Object.keys(audioElements).forEach(id => {
         audioElements[id].volume = volumes[id] / 100 * masterVolume / 100;
+      });
+      generatedLayers.forEach(layer => {
+        if (layer.audioElement) {
+          layer.audioElement.volume = layer.volume * masterVolume / 100;
+        }
       });
     }
 
@@ -930,6 +1505,10 @@
         if (timerRemaining <= 0) {
           clearInterval(timerInterval);
           Object.values(audioElements).forEach(audio => audio.pause());
+          generatedLayers.forEach(layer => {
+            if (layer.audioElement) layer.audioElement.pause();
+            if (layer.synth) layer.synth.dispose();
+          });
           isPlaying = false;
           updatePlayButton();
           document.getElementById('visualizer').classList.remove('active');
@@ -953,6 +1532,266 @@
         timerDropdown.classList.remove('open');
       }
     });
+
+    // ==================== CHAT FUNCTIONS ====================
+
+    function toggleChat() {
+      isChatOpen = !isChatOpen;
+      const modal = document.getElementById('chatModal');
+      modal.classList.toggle('open', isChatOpen);
+      
+      if (isChatOpen) {
+        document.getElementById('chatInput').focus();
+      }
+    }
+
+    function handleChatKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    }
+
+    function addChatMessage(content, type = 'ai') {
+      const container = document.getElementById('chatMessages');
+      const msg = document.createElement('div');
+      msg.className = `chat-message ${type}`;
+      msg.textContent = content;
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      const container = document.getElementById('chatMessages');
+      const typing = document.createElement('div');
+      typing.className = 'chat-typing';
+      typing.id = 'typingIndicator';
+      typing.innerHTML = '<span></span><span></span><span></span>';
+      container.appendChild(typing);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const typing = document.getElementById('typingIndicator');
+      if (typing) typing.remove();
+    }
+
+    function setChatInputEnabled(enabled) {
+      document.getElementById('chatInput').disabled = !enabled;
+      document.getElementById('chatSendBtn').disabled = !enabled;
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const message = input.value.trim();
+      
+      if (!message || isTyping) return;
+
+      // Add user message
+      addChatMessage(message, 'user');
+      input.value = '';
+      
+      // Show typing
+      isTyping = true;
+      showTypingIndicator();
+      setChatInputEnabled(false);
+
+      try {
+        // Build chat history for context
+        const messages = [
+          { role: 'user', parts: [{ text: GEMINI_SYSTEM_PROMPT }] },
+          ...chatHistory.map(h => ({ role: h.role, parts: [{ text: h.content }] })),
+          { role: 'user', parts: [{ text: message }] }
+        ];
+
+        const response = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: messages,
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 1024,
+            }
+          })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error?.message || 'API Error');
+        }
+
+        const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!aiResponse) {
+          throw new Error('No response from AI');
+        }
+
+        // Add to history
+        chatHistory.push({ role: 'user', content: message });
+        chatHistory.push({ role: 'model', content: aiResponse });
+
+        hideTypingIndicator();
+        
+        // Parse and execute the response
+        await processAIResponse(aiResponse);
+
+      } catch (error) {
+        hideTypingIndicator();
+        addChatMessage(`⚠️ Error: ${error.message}`, 'error');
+      } finally {
+        isTyping = false;
+        setChatInputEnabled(true);
+      }
+    }
+
+    async function processAIResponse(responseText) {
+      let parsed;
+      
+      try {
+        // Try to extract JSON from the response
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch (e) {
+        // If parsing fails, just show the response
+        addChatMessage(responseText, 'ai');
+        return;
+      }
+
+      switch (parsed.type) {
+        case 'layer':
+          await handleLayerRequest(parsed);
+          break;
+        case 'music':
+          handleMusicRequest(parsed);
+          break;
+        case 'clarify':
+          addChatMessage(parsed.message, 'ai');
+          break;
+        default:
+          addChatMessage(responseText, 'ai');
+      }
+    }
+
+    async function handleLayerRequest(parsed) {
+      const soundName = parsed.sound?.toLowerCase();
+      const params = parsed.params || {};
+      
+      // Map sound name to sound ID
+      let soundId = SOUND_NAME_MAP[soundName];
+      
+      // If no match, try to find a partial match
+      if (!soundId) {
+        for (const [key, value] of Object.entries(SOUND_NAME_MAP)) {
+          if (soundName.includes(key) || key.includes(soundName)) {
+            soundId = value;
+            break;
+          }
+        }
+      }
+
+      if (soundId && audioElements[soundId]) {
+        // Use existing sound
+        const volume = params.volume ?? 0.7;
+        const sound = SOUNDS.find(s => s.id === soundId);
+        
+        volumes[soundId] = Math.round(volume * 100);
+        if (audioElements[soundId]) {
+          audioElements[soundId].volume = volume * masterVolume / 100;
+        }
+        
+        if (!activeLayers.has(soundId)) {
+          activeLayers.add(soundId);
+        }
+        
+        addChatMessage(`✅ Added '${sound.name}' to your mix! (Volume: ${Math.round(volume * 100)}%)`, 'ai');
+        
+        renderLayers();
+      } else {
+        // Create a generated layer
+        const layerId = `gen_${++generatedLayerCounter}`;
+        const layer = {
+          id: layerId,
+          name: soundName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          icon: '🎵',
+          type: 'sound',
+          volume: params.volume ?? 0.7,
+          reverb: params.reverb ?? 0.3,
+          echo: params.echo ?? 0.1,
+          playbackRate: params.playbackRate ?? 1.0,
+          active: true,
+          audioElement: null
+        };
+        
+        generatedLayers.push(layer);
+        activeLayers.add(layerId);
+        saveGeneratedLayers();
+        
+        addChatMessage(`✅ Created and added '${layer.name}' to your mix!`, 'ai');
+        renderLayers();
+      }
+    }
+
+    function handleMusicRequest(parsed) {
+      const instrument = parsed.instrument || 'synth';
+      const notes = parsed.notes || ['C4', 'E4', 'G4'];
+      const duration = parsed.duration || '4n';
+      const tempo = parsed.tempo || 60;
+      const volume = parsed.volume ?? 0.4;
+
+      const layerId = `gen_${++generatedLayerCounter}`;
+      
+      let synth;
+      try {
+        if (instrument === 'polySynth' || instrument === 'polysynth') {
+          synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        } else {
+          synth = new Tone.Synth().toDestination();
+        }
+        synth.volume.value = Tone.gainToDb(volume);
+        
+        // Store the synth for later use
+        synths.push(synth);
+        
+        const layer = {
+          id: layerId,
+          name: `${instrument.charAt(0).toUpperCase() + instrument.slice(1)} Melody`,
+          icon: '🎹',
+          type: 'music',
+          instrument,
+          notes,
+          duration,
+          tempo,
+          volume,
+          active: true,
+          synth
+        };
+        
+        generatedLayers.push(layer);
+        activeLayers.add(layerId);
+        saveGeneratedLayers();
+        
+        // Play immediately if already playing
+        if (isPlaying) {
+          synth.triggerAttackRelease(notes, duration, Tone.now(), tempo / 60);
+        }
+        
+        addChatMessage(`✅ Created '${layer.name}' with notes [${notes.join(', ')}]!`, 'ai');
+        renderLayers();
+      } catch (e) {
+        console.error('Synth creation error:', e);
+        addChatMessage(`⚠️ Could not create music: ${e.message}`, 'ai');
+      }
+    }
 
     // Initialize on load
     init();

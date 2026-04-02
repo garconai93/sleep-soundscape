@@ -1038,18 +1038,49 @@
     const GROQ_MODEL = 'llama-3.3-70b-versatile';
     const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
-    const GROQ_SYSTEM_PROMPT = `You are an AI assistant for SleepSoundscape, a web app that creates ambient soundscapes by layering sounds.
+    const GROQ_SYSTEM_PROMPT = `You are a sound designer AI for SleepSoundscape. You generate AMBIENT SOUNDS using Tone.js parameters.
 
-SOUNDS AVAILABLE: Rain, Heavy Rain, Thunder, Wind, Fire Crackling, Birds, Ocean Waves, Forest, Night Crickets, River Stream, White Noise, Brown Noise, Pink Noise, Cafe Murmur, Train, Airplane, Heartbeat, Bowls, Tambura
+TONE.JS SOUND TYPES you can create:
 
-Each sound has parameters: volume (0-1), detune (-1200 to 1200), reverb (0-1), echo (0-1), playbackRate (0.5-2.0), loop (bool)
+1. NOISE sounds (use Tone.Noise):
+   - "white_noise" - all frequencies
+   - "pink_noise" - filtered white noise  
+   - "brown_noise" - deep filtered noise
+   
+2. OSCILLATOR sounds (use Tone.Oscillator):
+   - Types: "sine", "square", "triangle", "sawtooth"
+   - Frequencies: 20Hz to 2000Hz
+   
+3. MEMBRANE sounds (use Tone.MembraneSynth)
+4. METAL sounds (use Tone.MetalSynth)
+5. SAMPLES from URLs (use Tone.Player with a URL)
 
-MUSIC: Use Tone.Synth/PolySynth for melodies. Parameters: notes (array like ["C4","E4"]), duration, tempo, volume.
+EFFECTS you can apply:
+- reverb: 0.0 to 1.0 (use Tone.Reverb)
+- echo: 0.0 to 1.0 (use Tone.FeedbackEcho)
+- delay: 0.0 to 1.0 (use Tone.FeedbackDelay)
+- filter: frequency in Hz (use Tone.Filter)
 
-Respond ONLY with valid JSON:
-- For sounds: {"type": "layer", "sound": "rain", "params": {"volume": 0.7, "reverb": 0.5, "echo": 0.2}}
-- For music: {"type": "music", "instrument": "synth", "notes": ["C4","G4","C5"], "duration": "4n", "tempo": 60, "volume": 0.4}
-- If unclear: {"type": "clarify", "message": "what do you mean?"}`;
+IMPORTANT RULES:
+1. ALWAYS respond with valid JSON only - no explanations
+2. ALWAYS use "type": "generated" for new sounds
+3. NEVER use existing sound IDs like "rain" or "thunder"
+4. NEVER invent URLs for audio files - only use Tone.js synthesis
+
+Respond ONLY with this JSON format:
+{
+  "type": "generated",
+  "name": "Ocean with Dolphins",
+  "soundType": "noise" | "oscillator" | "membrane" | "metal" | "sample",
+  "params": {
+    // For noise: {"noiseType": "pink", "volume": 0.3, "reverb": 0.5, "echo": 0.2}
+    // For oscillator: {"oscType": "sine", "frequency": 220, "volume": 0.4, "reverb": 0.6}
+    // For membrane: {"pitch": "C2", "volume": 0.5, "decay": 0.5, "reverb": 0.3}
+    // For metal: {"pitch": "C4", "volume": 0.4, "decay": 0.2, "reverb": 0.7}
+  }
+}
+
+If user asks for clarification: {"type": "clarify", "message": "what do you mean?"}`;
 
     // Sound Configuration
     const SOUNDS = [
@@ -1107,6 +1138,168 @@ Respond ONLY with valid JSON:
     let generatedLayers = [];
     let generatedLayerCounter = 0;
     let synths = [];
+    let generatedSources = []; // Store Tone.js sources for cleanup
+
+    // Create a Tone.js generated sound
+    function createGeneratedSound(params, layerId, layerName) {
+      let source = null;
+      let toneNode = null;
+      
+      try {
+        switch(params.soundType) {
+          case 'noise':
+            source = new Tone.Noise(params.noiseType || 'pink').start();
+            toneNode = source;
+            break;
+          case 'oscillator':
+            source = new Tone.Oscillator(params.frequency || 220, params.oscType || 'sine').start();
+            toneNode = source;
+            break;
+          case 'membrane':
+            toneNode = new Tone.MembraneSynth({
+              pitchDecay: 0.05,
+              octaves: 4,
+              oscillator: { type: "sine" },
+              envelope: {
+                attack: 0.001,
+                decay: params.decay || 0.4,
+                sustain: 0.01,
+                release: 1.4
+              }
+            }).toDestination();
+            // Play a note
+            toneNode.triggerAttackRelease(params.pitch || 'C2', params.decay || 1);
+            break;
+          case 'metal':
+            toneNode = new Tone.MetalSynth({
+              frequency: 200,
+              envelope: {
+                attack: 0.001,
+                decay: params.decay || 0.2,
+                release: 0.2
+              },
+              harmonicity: 5.1,
+              modulationIndex: 32,
+              resonance: 4000,
+              octaves: 1.5
+            }).toDestination();
+            // Play a note
+            toneNode.triggerAttackRelease(params.pitch || 'C4', params.decay || 0.2);
+            break;
+          default:
+            console.log('Unknown soundType:', params.soundType);
+            return null;
+        }
+        
+        // Apply effects chain
+        let lastNode = toneNode;
+        
+        if (params.filter && params.filter > 0) {
+          const filter = new Tone.Filter(params.filter, "lowpass").toDestination();
+          lastNode.connect(filter);
+          lastNode = filter;
+        }
+        
+        if (params.reverb && params.reverb > 0) {
+          const reverb = new Tone.Reverb({
+            decay: params.reverb * 5 + 0.5,
+            wet: params.reverb
+          }).toDestination();
+          // Reverb needs async conversion
+          (async () => {
+            await reverb.context.workletLoaded;
+            lastNode.connect(reverb);
+          })();
+          lastNode = reverb;
+        }
+        
+        if (params.echo && params.echo > 0) {
+          const echo = new Tone.FeedbackEcho({
+            delayTime: 0.3,
+            feedback: params.echo * 0.8,
+            wet: params.echo
+          }).toDestination();
+          lastNode.connect(echo);
+          lastNode = echo;
+        }
+        
+        // Set volume
+        if (toneNode.volume) {
+          toneNode.volume.value = Tone.gainToDb(params.volume ?? 0.5);
+        }
+        
+        // Store for cleanup
+        generatedSources.push({
+          id: layerId,
+          source: toneNode,
+          lastNode: lastNode
+        });
+        
+        return toneNode;
+      } catch (e) {
+        console.error('Error creating generated sound:', e);
+        return null;
+      }
+    }
+
+    // Handle generated sound from AI response
+    function handleGeneratedSound(parsed) {
+      const layerId = `gen_${++generatedLayerCounter}`;
+      const name = parsed.name || 'Generated Sound';
+      const params = parsed.params || {};
+      
+      // Create the Tone.js sound
+      const toneSource = createGeneratedSound(params, layerId, name);
+      
+      const layer = {
+        id: layerId,
+        name: name,
+        icon: '🎵',
+        type: 'generated',
+        soundType: params.soundType || 'noise',
+        params: params,
+        volume: params.volume ?? 0.5,
+        reverb: params.reverb ?? 0.3,
+        echo: params.echo ?? 0.1,
+        active: true,
+        toneSource: toneSource // Reference for stopping
+      };
+      
+      generatedLayers.push(layer);
+      activeLayers.add(layerId);
+      saveGeneratedLayers();
+      
+      addChatMessage(`✅ Created and added '${name}' to your mix!`, 'ai');
+      renderLayers();
+    }
+
+    // Delete a generated layer
+    function deleteGeneratedLayer(layerId) {
+      // Find and cleanup Tone.js source
+      const sourceIndex = generatedSources.findIndex(s => s.id === layerId);
+      if (sourceIndex !== -1) {
+        const sourceObj = generatedSources[sourceIndex];
+        try {
+          if (sourceObj.source && sourceObj.source.dispose) {
+            sourceObj.source.dispose();
+          }
+        } catch (e) {
+          console.log('Error disposing source:', e);
+        }
+        generatedSources.splice(sourceIndex, 1);
+      }
+      
+      // Remove from generatedLayers
+      const layer = generatedLayers.find(l => l.id === layerId);
+      if (layer) {
+        if (activeLayers.has(layerId)) {
+          activeLayers.delete(layerId);
+        }
+        generatedLayers = generatedLayers.filter(l => l.id !== layerId);
+        saveGeneratedLayers();
+        renderLayers();
+      }
+    }
 
     // Chat state
     let isChatOpen = false;
@@ -1283,11 +1476,15 @@ Respond ONLY with valid JSON:
         layer.active = false;
         layerEl.classList.remove('active');
         status.textContent = 'Tap to add';
-        if (layer.audioElement && isPlaying) {
-          layer.audioElement.pause();
+        
+        // Stop Tone.js source
+        if (layer.toneSource) {
+          try {
+            layer.toneSource.stop();
+          } catch (e) {}
         }
-        if (layer.synth && isPlaying) {
-          layer.synth.dispose();
+        if (layer.audioElement) {
+          layer.audioElement.pause();
         }
       } else {
         activeLayers.add(id);
@@ -1295,12 +1492,17 @@ Respond ONLY with valid JSON:
         layerEl.classList.add('active');
         status.textContent = '● Playing';
         
-        if (layer.type === 'music' && layer.synth) {
-          if (isPlaying) {
-            try {
-              layer.synth.triggerAttackRelease(layer.notes, layer.duration, Tone.now(), layer.tempo / 60);
-            } catch (e) {
-              console.log('Synth play error:', e);
+        // Play Tone.js source
+        if (layer.type === 'generated' && layer.soundType) {
+          if (!layer.toneSource || layer.toneSource.disposed) {
+            layer.toneSource = createGeneratedSound(layer.params, layer.id, layer.name);
+          }
+          // For continuous sounds, we need to restart them
+          if (layer.soundType === 'noise') {
+            // Noise needs to be restarted
+            const sourceObj = generatedSources.find(s => s.id === id);
+            if (sourceObj && sourceObj.source && !sourceObj.source.context.state) {
+              sourceObj.source.start();
             }
           }
         } else if (layer.audioElement) {
@@ -1334,22 +1536,8 @@ Respond ONLY with valid JSON:
     }
 
     function removeGeneratedLayer(id) {
-      const layer = generatedLayers.find(l => l.id === id);
-      if (!layer) return;
-
-      // Stop if playing
-      if (activeLayers.has(id)) {
-        activeLayers.delete(id);
-        if (layer.audioElement) layer.audioElement.pause();
-        if (layer.synth) layer.synth.dispose();
-      }
-
-      // Remove from list
-      generatedLayers = generatedLayers.filter(l => l.id !== id);
-      saveGeneratedLayers();
-
-      // Re-render
-      renderLayers();
+      // Use the cleanup function
+      deleteGeneratedLayer(id);
     }
 
     function setVolume(id, value) {
@@ -1427,8 +1615,15 @@ Respond ONLY with valid JSON:
         // Pause all
         Object.values(audioElements).forEach(audio => audio.pause());
         
-        // Pause generated audio
+        // Stop Tone.js generated sources
         generatedLayers.forEach(layer => {
+          if (layer.toneSource && layer.type === 'generated') {
+            try {
+              if (layer.soundType === 'noise' || layer.soundType === 'oscillator') {
+                layer.toneSource.stop();
+              }
+            } catch (e) {}
+          }
           if (layer.audioElement) layer.audioElement.pause();
         });
 
@@ -1443,10 +1638,18 @@ Respond ONLY with valid JSON:
           }
         }
 
-        // Play generated layers
+        // Play generated layers with Tone.js
         generatedLayers.forEach(layer => {
           if (activeLayers.has(layer.id)) {
-            if (layer.type === 'music' && layer.synth) {
+            if (layer.type === 'generated' && layer.soundType) {
+              // For continuous sounds (noise, oscillator), restart if needed
+              if (layer.soundType === 'noise' || layer.soundType === 'oscillator') {
+                // Recreate the source since it was stopped
+                if (!layer.toneSource || layer.toneSource.context.state === 'closed') {
+                  layer.toneSource = createGeneratedSound(layer.params, layer.id, layer.name);
+                }
+              }
+            } else if (layer.type === 'music' && layer.synth) {
               try {
                 layer.synth.triggerAttackRelease(layer.notes, layer.duration, Tone.now(), layer.tempo / 60);
               } catch (e) {
@@ -1660,6 +1863,8 @@ Respond ONLY with valid JSON:
           return;
         }
 
+        let addedCount = 0;
+        
         // Process each JSON object
         for (const jsonStr of jsonMatches) {
           try {
@@ -1668,9 +1873,15 @@ Respond ONLY with valid JSON:
             switch (parsed.type) {
               case 'layer':
                 await handleLayerRequest(parsed);
+                addedCount++;
                 break;
               case 'music':
                 handleMusicRequest(parsed);
+                addedCount++;
+                break;
+              case 'generated':
+                handleGeneratedSound(parsed);
+                addedCount++;
                 break;
               case 'clarify':
                 addChatMessage(parsed.message, 'ai');
@@ -1686,7 +1897,9 @@ Respond ONLY with valid JSON:
         }
         
         // Show success message after processing
-        addChatMessage('✅ Layers added to your mix!', 'ai');
+        if (addedCount > 0) {
+          addChatMessage(`✅ ${addedCount} layer${addedCount > 1 ? 's' : ''} added to your mix!`, 'ai');
+        }
 
       } catch (e) {
         // If everything fails, just show the response

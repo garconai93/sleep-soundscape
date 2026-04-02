@@ -1868,9 +1868,11 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
     }
 
     async function processAIResponse(responseText) {
+      console.log('[DEBUG processAIResponse] START, responseText length:', responseText.length);
       try {
         // Try to extract ALL JSON objects from the response
         const jsonMatches = responseText.match(/\{[\s\S]*?\}/g);
+        console.log('[DEBUG processAIResponse] jsonMatches:', jsonMatches);
         
         if (!jsonMatches || jsonMatches.length === 0) {
           // No JSON found, just show the response
@@ -1884,6 +1886,7 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
         for (const jsonStr of jsonMatches) {
           try {
             const parsed = JSON.parse(jsonStr);
+            console.log('[DEBUG processAIResponse] parsed:', parsed);
             
             switch (parsed.type) {
               case 'layer':
@@ -1895,18 +1898,27 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
                 addedCount++;
                 break;
               case 'generated':
-                handleGeneratedSound(parsed);
-                addedCount++;
+                console.log('[DEBUG] calling handleGeneratedSound...');
+                try {
+                  handleGeneratedSound(parsed);
+                  addedCount++;
+                } catch(e) {
+                  console.error('[DEBUG handleGeneratedSound error]:', e);
+                  addChatMessage(`⚠️ handleGeneratedSound error: ${e.message}`, 'error');
+                }
                 break;
               case 'clarify':
                 addChatMessage(parsed.message, 'ai');
                 break;
               default:
-                // Unknown type, skip silently
+                console.log('[DEBUG] unknown type:', parsed.type);
+                addChatMessage(`⚠️ Unknown type: ${parsed.type}`, 'ai');
                 break;
             }
           } catch (e) {
             // Invalid JSON, skip this one
+            console.error('[DEBUG JSON parse error]:', e);
+            addChatMessage(`⚠️ JSON parse error: ${e.message}`, 'error');
             continue;
           }
         }
@@ -1914,11 +1926,13 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
         // Show success message after processing
         if (addedCount > 0) {
           addChatMessage(`✅ ${addedCount} layer${addedCount > 1 ? 's' : ''} added to your mix!`, 'ai');
+        } else {
+          addChatMessage(`⚠️ No layers were added (addedCount=0)`, 'ai');
         }
 
       } catch (e) {
-        // If everything fails, just show the response
-        addChatMessage(responseText, 'ai');
+        console.error('[DEBUG processAIResponse outer error]:', e);
+        addChatMessage(`⚠️ processAIResponse error: ${e.message}`, 'error');
       }
     }
 

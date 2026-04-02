@@ -1840,6 +1840,9 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
 
         hideTypingIndicator();
         
+        // DEBUG: show raw AI response
+        addChatMessage(`[DEBUG] AI said: ${aiResponse.substring(0, 200)}`, 'ai');
+        
         // Parse and execute the response
         await processAIResponse(aiResponse);
 

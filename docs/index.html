@@ -1650,34 +1650,47 @@ Respond ONLY with valid JSON:
     }
 
     async function processAIResponse(responseText) {
-      let parsed;
-      
       try {
-        // Try to extract JSON from the response
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsed = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found in response');
-        }
-      } catch (e) {
-        // If parsing fails, just show the response
-        addChatMessage(responseText, 'ai');
-        return;
-      }
-
-      switch (parsed.type) {
-        case 'layer':
-          await handleLayerRequest(parsed);
-          break;
-        case 'music':
-          handleMusicRequest(parsed);
-          break;
-        case 'clarify':
-          addChatMessage(parsed.message, 'ai');
-          break;
-        default:
+        // Try to extract ALL JSON objects from the response
+        const jsonMatches = responseText.match(/\{[\s\S]*?\}/g);
+        
+        if (!jsonMatches || jsonMatches.length === 0) {
+          // No JSON found, just show the response
           addChatMessage(responseText, 'ai');
+          return;
+        }
+
+        // Process each JSON object
+        for (const jsonStr of jsonMatches) {
+          try {
+            const parsed = JSON.parse(jsonStr);
+            
+            switch (parsed.type) {
+              case 'layer':
+                await handleLayerRequest(parsed);
+                break;
+              case 'music':
+                handleMusicRequest(parsed);
+                break;
+              case 'clarify':
+                addChatMessage(parsed.message, 'ai');
+                break;
+              default:
+                // Unknown type, skip silently
+                break;
+            }
+          } catch (e) {
+            // Invalid JSON, skip this one
+            continue;
+          }
+        }
+        
+        // Show success message after processing
+        addChatMessage('✅ Layers added to your mix!', 'ai');
+
+      } catch (e) {
+        // If everything fails, just show the response
+        addChatMessage(responseText, 'ai');
       }
     }
 

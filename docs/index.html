@@ -1147,39 +1147,37 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
       
       // Use soundType from parsed or from params
       const type = soundType || params.soundType || params.type;
-      console.log('[DEBUG createGeneratedSound] type:', type, 'params:', params);
-      console.log('[DEBUG createGeneratedSound] Tone defined:', typeof Tone !== 'undefined');
-      console.log('[DEBUG createGeneratedSound] Tone.Noise:', typeof Tone.Noise);
+// 
+// 
+// 
       
       try {
         // Ensure Tone context is started (requires user interaction)
         if (Tone.context.state !== 'running') {
-          console.log('[DEBUG createGeneratedSound] Tone context not running, starting...');
+          // debug removed
           Tone.start();
         }
         
         switch(type) {
           case 'noise':
-            console.log('[DEBUG createGeneratedSound] creating Noise with type:', params.noiseType);
+// 
             // Map AI noise types to Tone.Noise types
             const noiseMap = { 'white_noise': 'white', 'pink_noise': 'pink', 'brown_noise': 'brown' };
             const noiseType = noiseMap[params.noiseType] || params.noiseType || 'pink';
-            console.log('[DEBUG createGeneratedSound] mapped noiseType:', noiseType);
+// 
             const noise = new Tone.Noise(noiseType);
             noise.toDestination();
             noise.start();
             toneNode = noise;
             source = noise;
-            console.log('[DEBUG createGeneratedSound] Noise created, source:', source);
+// 
             break;
           case 'oscillator':
-            console.log('[DEBUG createGeneratedSound] creating Oscillator with freq:', params.frequency, 'type:', params.oscType);
-            const osc = new Tone.Oscillator(params.frequency || 220, params.oscType || 'sine');
+            const osc = new Tone.Oscillator({ frequency: params.frequency || 220, type: params.oscType || 'sine' });
             osc.toDestination();
             osc.start();
             toneNode = osc;
             source = osc;
-            console.log('[DEBUG createGeneratedSound] Oscillator created, source:', source);
             break;
           case 'membrane':
             toneNode = new Tone.MembraneSynth({
@@ -1213,11 +1211,11 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
             toneNode.triggerAttackRelease(params.pitch || 'C4', params.decay || 0.2);
             break;
           default:
-            console.log('[DEBUG createGeneratedSound] Unknown soundType:', type, 'params.soundType:', params.soundType);
+// 
             return null;
         }
         
-        console.log('[DEBUG createGeneratedSound] after switch, toneNode:', toneNode, 'source:', source);
+// 
         
         // Apply effects chain
         let lastNode = toneNode;
@@ -1272,19 +1270,19 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
 
     // Handle generated sound from AI response
     function handleGeneratedSound(parsed) {
-      console.log('[DEBUG] handleGeneratedSound called with:', parsed);
+// 
       const layerId = `gen_${++generatedLayerCounter}`;
       const name = parsed.name || 'Generated Sound';
       const params = parsed.params || {};
-      console.log('[DEBUG] params:', params);
+// 
       
       // Create the Tone.js sound - pass soundType from parsed, not params
-      console.log('[DEBUG] calling createGeneratedSound with soundType:', parsed.soundType);
+// 
       const toneSource = createGeneratedSound(params, layerId, name, parsed.soundType);
-      console.log('[DEBUG] toneSource:', toneSource);
+// 
       
       if (!toneSource) {
-        console.log('[DEBUG] createGeneratedSound returned null!');
+// 
         addChatMessage(`⚠️ Could not create sound: unknown error`, 'ai');
         return;
       }
@@ -1885,13 +1883,11 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
 
         hideTypingIndicator();
         
-          // DEBUG: show raw AI response
-        addChatMessage(`[DEBUG] AI raw: ${aiResponse.substring(0, 300)}`, 'ai');
-        
+  
         // Parse and execute the response
-        console.log('[DEBUG] calling processAIResponse with:', aiResponse);
+// 
         await processAIResponse(aiResponse);
-        console.log('[DEBUG] processAIResponse done');
+// 
 
       } catch (error) {
         hideTypingIndicator();
@@ -1903,7 +1899,7 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
     }
 
     async function processAIResponse(responseText) {
-      console.log('[DEBUG processAIResponse] START, responseText length:', responseText.length);
+// 
       try {
         // Try to extract ALL JSON objects from the response
         // Use a regex that properly handles nested braces
@@ -1951,8 +1947,8 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
           }
         }
         
-        console.log('[DEBUG processAIResponse] jsonMatches count:', jsonMatches.length);
-        console.log('[DEBUG processAIResponse] jsonMatches:', jsonMatches);
+// 
+// 
         
         if (!jsonMatches || jsonMatches.length === 0) {
           // No JSON found, just show the response
@@ -1966,7 +1962,7 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
         for (const jsonStr of jsonMatches) {
           try {
             const parsed = JSON.parse(jsonStr);
-            console.log('[DEBUG processAIResponse] parsed:', parsed);
+// 
             
             switch (parsed.type) {
               case 'layer':
@@ -1978,12 +1974,12 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
                 addedCount++;
                 break;
               case 'generated':
-                console.log('[DEBUG] calling handleGeneratedSound...');
+// 
                 try {
                   handleGeneratedSound(parsed);
                   addedCount++;
                 } catch(e) {
-                  // DEBUG REMOVED handleGeneratedSound error]:', e);
+// 
                   addChatMessage(`⚠️ handleGeneratedSound error: ${e.message}`, 'error');
                 }
                 break;
@@ -1991,13 +1987,13 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
                 addChatMessage(parsed.message, 'ai');
                 break;
               default:
-                console.log('[DEBUG] unknown type:', parsed.type);
+// 
                 addChatMessage(`⚠️ Unknown type: ${parsed.type}`, 'ai');
                 break;
             }
           } catch (e) {
             // Invalid JSON, skip this one
-            // DEBUG REMOVED JSON parse error]:', e);
+// 
             addChatMessage(`⚠️ JSON parse error: ${e.message}`, 'error');
             continue;
           }
@@ -2011,7 +2007,7 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
         }
 
       } catch (e) {
-        // DEBUG REMOVED processAIResponse outer error]:', e);
+// 
         addChatMessage(`⚠️ processAIResponse error: ${e.message}`, 'error');
       }
     }

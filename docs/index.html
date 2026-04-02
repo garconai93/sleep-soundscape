@@ -1421,13 +1421,9 @@ For "relaxing piano":
         const saved = localStorage.getItem('ss_generated_layers');
         if (saved) {
           generatedLayers = JSON.parse(saved);
-          generatedLayers.forEach(layer => {
-            // Reset active state on load - user must manually reactivate
-            layer.active = false;
-          });
+          // Don't auto-add to activeLayers - user must manually activate
         }
       } catch (e) {
-        console.log('Failed to load generated layers:', e);
         generatedLayers = [];
       }
     }
@@ -1535,7 +1531,7 @@ For "relaxing piano":
       updatePlayButton();
     }
 
-    async function toggleGeneratedLayer(id) {
+    function toggleGeneratedLayer(id) {
       const layer = generatedLayers.find(l => l.id === id);
       if (!layer) return;
 
@@ -1545,50 +1541,26 @@ For "relaxing piano":
 
       if (activeLayers.has(id)) {
         activeLayers.delete(id);
-        layer.active = false;
-        if (layerEl) layerEl.classList.remove('active');
-        if (status) status.textContent = 'Tap to add';
+        layerEl.classList.remove('active');
+        status.textContent = 'Tap to add';
         
-        // Stop and cleanup Tone.js source
-        if (sourceObj && sourceObj.source) {
-          try {
-            if (sourceObj.source.stop) {
-              sourceObj.source.stop(); // This clears interval and disposes
-            }
-          } catch (e) {}
+        // Stop sound
+        if (sourceObj && sourceObj.source && sourceObj.source.stop) {
+          try { sourceObj.source.stop(); } catch (e) {}
         }
-        // Remove from generatedSources so it gets recreated
         generatedSources = generatedSources.filter(s => s.id !== id);
-        
-        if (layer.audioElement) {
-          layer.audioElement.pause();
-        }
       } else {
         activeLayers.add(id);
-        layer.active = true;
-        if (layerEl) layerEl.classList.add('active');
-        if (status) status.textContent = '● Playing';
+        layerEl.classList.add('active');
+        status.textContent = '● Playing';
         
-        // Recreate sound (it was removed from generatedSources when stopped)
+        // Start sound
         if (layer.type === 'generated' && layer.soundType) {
-          await createGeneratedSound(layer.params, layer.id, layer.name, layer.soundType);
-          // If isPlaying, also start it
-          if (isPlaying && generatedSources.find(s => s.id === id)) {
-            const newSourceObj = generatedSources.find(s => s.id === id);
-            if (newSourceObj && newSourceObj.source && newSourceObj.source.start) {
-              try { newSourceObj.source.start(); } catch (e) {}
-            }
-          }
-        } else if (layer.audioElement) {
-          if (isPlaying) {
-            layer.audioElement.volume = layer.volume * masterVolume / 100;
-            layer.audioElement.play().catch(e => console.log('Play error:', e));
-          }
+          createGeneratedSound(layer.params, layer.id, layer.name, layer.soundType);
         }
       }
 
       saveGeneratedLayers();
-      renderLayers();
       updateActiveMix();
       updatePlayButton();
     }

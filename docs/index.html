@@ -1422,9 +1422,8 @@ For "relaxing piano":
         if (saved) {
           generatedLayers = JSON.parse(saved);
           generatedLayers.forEach(layer => {
-            if (layer.active) {
-              activeLayers.add(layer.id);
-            }
+            // Reset active state on load - user must manually reactivate
+            layer.active = false;
           });
         }
       } catch (e) {
@@ -1589,6 +1588,7 @@ For "relaxing piano":
       }
 
       saveGeneratedLayers();
+      renderLayers();
       updateActiveMix();
       updatePlayButton();
     }

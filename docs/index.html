@@ -1141,37 +1141,30 @@ For "relaxing piano":
     let generatedSources = []; // Store Tone.js sources for cleanup
 
     // Create a Tone.js generated sound
-    function createGeneratedSound(params, layerId, layerName, soundType) {
+    async function createGeneratedSound(params, layerId, layerName, soundType) {
       let source = null;
       let toneNode = null;
       
       // Use soundType from parsed or from params
       const type = soundType || params.soundType || params.type;
-// 
-// 
-// 
       
       try {
         // Ensure Tone context is started (requires user interaction)
         if (Tone.context.state !== 'running') {
-          // debug removed
-          Tone.start();
+          await Tone.start();
         }
         
         switch(type) {
-          case 'noise':
-// 
-            // Map AI noise types to Tone.Noise types
+          case 'noise': {
             const noiseMap = { 'white_noise': 'white', 'pink_noise': 'pink', 'brown_noise': 'brown' };
             const noiseType = noiseMap[params.noiseType] || params.noiseType || 'pink';
-// 
             const noise = new Tone.Noise(noiseType);
             noise.toDestination();
             noise.start();
             toneNode = noise;
             source = noise;
-// 
             break;
+          }
           case 'oscillator':
             const osc = new Tone.Oscillator({ frequency: params.frequency || 220, type: params.oscType || 'sine' });
             osc.toDestination();
@@ -1304,20 +1297,21 @@ For "relaxing piano":
         
         return toneNode;
       } catch (e) {
-        console.error('Error creating generated sound:', e);
+        console.error('Error creating generated sound:', e.message, e.stack);
+        addChatMessage(`⚠️ Error: ${e.message}`, 'ai');
         return null;
       }
     }
 
     // Handle generated sound from AI response
-    function handleGeneratedSound(parsed) {
+    async function handleGeneratedSound(parsed) {
       try {
         const layerId = `gen_${++generatedLayerCounter}`;
         const name = parsed.name || 'Generated Sound';
         const params = parsed.params || {};
         
         // Create the Tone.js sound - pass soundType from parsed, not params
-        const toneSource = createGeneratedSound(params, layerId, name, parsed.soundType);
+        const toneSource = await createGeneratedSound(params, layerId, name, parsed.soundType);
         
         if (!toneSource) {
           addChatMessage(`⚠️ Could not create sound`, 'ai');

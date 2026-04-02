@@ -1771,9 +1771,10 @@ Respond ONLY with valid JSON:
         }
         synth.volume.value = Tone.gainToDb(volume);
         
-        // Store the synth for later use
-        synths.push(synth);
+        // Store synth by ID (NOT in the layer object that gets saved to localStorage)
+        synths.push({ id: layerId, synth });
         
+        // Layer object WITHOUT synth reference (safe for localStorage)
         const layer = {
           id: layerId,
           name: `${instrument.charAt(0).toUpperCase() + instrument.slice(1)} Melody`,
@@ -1784,8 +1785,7 @@ Respond ONLY with valid JSON:
           duration,
           tempo,
           volume,
-          active: true,
-          synth
+          active: true
         };
         
         generatedLayers.push(layer);

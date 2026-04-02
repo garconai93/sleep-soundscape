@@ -1032,13 +1032,13 @@
   </div>
 
   <script>
-    // Gemini API Configuration
+    // Groq API Configuration
     // API key will be injected at build time
-    const GEMINI_API_KEY = 'YOUR_GROQ_API_KEY';
-    const GEMINI_MODEL = 'gemini-2.0-flash';
-    const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+    const GROQ_API_KEY = 'YOUR_GROQ_API_KEY';
+    const GROQ_MODEL = 'llama-3.3-70b-versatile';
+    const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
-    const GEMINI_SYSTEM_PROMPT = `You are an AI assistant for SleepSoundscape, a web app that creates ambient soundscapes by layering sounds.
+    const GROQ_SYSTEM_PROMPT = `You are an AI assistant for SleepSoundscape, a web app that creates ambient soundscapes by layering sounds.
 
 SOUNDS AVAILABLE: Rain, Heavy Rain, Thunder, Wind, Fire Crackling, Birds, Ocean Waves, Forest, Night Crickets, River Stream, White Noise, Brown Noise, Pink Noise, Cafe Murmur, Train, Airplane, Heartbeat, Bowls, Tambura
 
@@ -1600,24 +1600,22 @@ Respond ONLY with valid JSON:
       try {
         // Build chat history for context
         const messages = [
-          { role: 'user', parts: [{ text: GEMINI_SYSTEM_PROMPT }] },
-          ...chatHistory.map(h => ({ role: h.role, parts: [{ text: h.content }] })),
-          { role: 'user', parts: [{ text: message }] }
+          { role: 'system', content: GROQ_SYSTEM_PROMPT },
+          ...chatHistory.map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content })),
+          { role: 'user', content: message }
         ];
 
-        const response = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(GROQ_ENDPOINT, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_API_KEY}`
           },
           body: JSON.stringify({
-            contents: messages,
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 1024,
-            }
+            model: GROQ_MODEL,
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 1024,
           })
         });
 
@@ -1627,7 +1625,7 @@ Respond ONLY with valid JSON:
           throw new Error(data.error?.message || 'API Error');
         }
 
-        const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const aiResponse = data.choices?.[0]?.message?.content;
         
         if (!aiResponse) {
           throw new Error('No response from AI');

@@ -1536,7 +1536,7 @@ For "relaxing piano":
       updatePlayButton();
     }
 
-    function toggleGeneratedLayer(id) {
+    async function toggleGeneratedLayer(id) {
       const layer = generatedLayers.find(l => l.id === id);
       if (!layer) return;
 
@@ -1565,12 +1565,16 @@ For "relaxing piano":
         if (layerEl) layerEl.classList.add('active');
         if (status) status.textContent = '● Playing';
         
-        // Play Tone.js source
+        // Play Tone.js source - recreate if needed for polysynth
         if (layer.type === 'generated' && layer.soundType) {
-          // Recreate sound if needed
-          const newSource = createGeneratedSound(layer.params, layer.id, layer.name, layer.soundType);
-          if (newSource) {
-            // Volume is set inside createGeneratedSound
+          // For polysynth that was stopped, we need to recreate
+          const sourceObj = generatedSources.find(s => s.id === id);
+          if (!sourceObj || !sourceObj.source || sourceObj.source.disposed) {
+            await createGeneratedSound(layer.params, layer.id, layer.name, layer.soundType);
+          } else if (layer.soundType === 'noise' || layer.soundType === 'oscillator') {
+            try {
+              sourceObj.source.start();
+            } catch (e) {}
           }
         } else if (layer.audioElement) {
           if (isPlaying) {
@@ -1695,10 +1699,11 @@ For "relaxing piano":
         
         // Stop Tone.js generated sources
         generatedLayers.forEach(layer => {
-          if (layer.toneSource && layer.type === 'generated') {
+          const sourceObj = generatedSources.find(s => s.id === layer.id);
+          if (sourceObj && sourceObj.source) {
             try {
-              if (layer.soundType === 'noise' || layer.soundType === 'oscillator') {
-                layer.toneSource.stop();
+              if (sourceObj.source.stop) {
+                sourceObj.source.stop();
               }
             } catch (e) {}
           }
@@ -1717,21 +1722,17 @@ For "relaxing piano":
         }
 
         // Play generated layers with Tone.js
-        generatedLayers.forEach(layer => {
+        generatedLayers.forEach(async layer => {
           if (activeLayers.has(layer.id)) {
             if (layer.type === 'generated' && layer.soundType) {
-              // For continuous sounds (noise, oscillator), restart if needed
-              if (layer.soundType === 'noise' || layer.soundType === 'oscillator') {
-                // Recreate the source since it was stopped
-                if (!layer.toneSource || layer.toneSource.context.state === 'closed') {
-                  layer.toneSource = createGeneratedSound(layer.params, layer.id, layer.name);
-                }
-              }
-            } else if (layer.type === 'music' && layer.synth) {
-              try {
-                layer.synth.triggerAttackRelease(layer.notes, layer.duration, Tone.now(), layer.tempo / 60);
-              } catch (e) {
-                console.log('Synth play error:', e);
+              const sourceObj = generatedSources.find(s => s.id === layer.id);
+              // Recreate if disposed or missing
+              if (!sourceObj || !sourceObj.source || sourceObj.source.disposed) {
+                await createGeneratedSound(layer.params, layer.id, layer.name, layer.soundType);
+              } else if (layer.soundType === 'noise' || layer.soundType === 'oscillator') {
+                try {
+                  sourceObj.source.start();
+                } catch (e) {}
               }
             } else if (layer.audioElement) {
               layer.audioElement.volume = layer.volume * masterVolume / 100;

@@ -1191,7 +1191,7 @@ For "relaxing piano":
             }
             
             if (params.echo && params.echo > 0) {
-              const echo = new Tone.FeedbackEcho({ delayTime: 0.3, feedback: params.echo * 0.8, wet: params.echo }).toDestination();
+              const echo = new Tone.FeedbackDelay({ delayTime: 0.3, feedback: params.echo * 0.8, wet: params.echo }).toDestination();
               polySynth.connect(echo);
             }
             
@@ -1274,7 +1274,7 @@ For "relaxing piano":
         }
         
         if (params.echo && params.echo > 0) {
-          const echo = new Tone.FeedbackEcho({
+          const echo = new Tone.FeedbackDelay({
             delayTime: 0.3,
             feedback: params.echo * 0.8,
             wet: params.echo

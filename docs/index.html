@@ -1850,11 +1850,13 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
 
         hideTypingIndicator();
         
-        // DEBUG: show raw AI response
-        addChatMessage(`[DEBUG] AI said: ${aiResponse.substring(0, 200)}`, 'ai');
+          // DEBUG: show raw AI response
+        addChatMessage(`[DEBUG] AI raw: ${aiResponse.substring(0, 300)}`, 'ai');
         
         // Parse and execute the response
+        console.log('[DEBUG] calling processAIResponse with:', aiResponse);
         await processAIResponse(aiResponse);
+        console.log('[DEBUG] processAIResponse done');
 
       } catch (error) {
         hideTypingIndicator();

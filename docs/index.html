@@ -1417,11 +1417,15 @@ For "relaxing piano":
     }
 
     function loadGeneratedLayers() {
+      // Clear any previously saved active state - always start fresh
       try {
         const saved = localStorage.getItem('ss_generated_layers');
         if (saved) {
           generatedLayers = JSON.parse(saved);
-          // Don't auto-add to activeLayers - user must manually activate
+          // Reset all layers to inactive on load
+          generatedLayers.forEach(layer => {
+            layer.active = false;
+          });
         }
       } catch (e) {
         generatedLayers = [];

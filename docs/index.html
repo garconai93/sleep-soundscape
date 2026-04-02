@@ -1289,6 +1289,7 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
         return;
       }
       
+      // Layer object WITHOUT toneSource (safe for localStorage)
       const layer = {
         id: layerId,
         name: name,
@@ -1299,8 +1300,8 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
         volume: params.volume ?? 0.5,
         reverb: params.reverb ?? 0.3,
         echo: params.echo ?? 0.1,
-        active: true,
-        toneSource: toneSource // Reference for stopping
+        active: true
+        // NO toneSource here!
       };
       
       generatedLayers.push(layer);

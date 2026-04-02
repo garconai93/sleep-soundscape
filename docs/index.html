@@ -1141,12 +1141,16 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
     let generatedSources = []; // Store Tone.js sources for cleanup
 
     // Create a Tone.js generated sound
-    function createGeneratedSound(params, layerId, layerName) {
+    function createGeneratedSound(params, layerId, layerName, soundType) {
       let source = null;
       let toneNode = null;
       
+      // Use soundType from parsed or from params
+      const type = soundType || params.soundType || params.type;
+      console.log('[DEBUG createGeneratedSound] type:', type, 'params:', params);
+      
       try {
-        switch(params.soundType) {
+        switch(type) {
           case 'noise':
             source = new Tone.Noise(params.noiseType || 'pink').start();
             toneNode = source;
@@ -1250,9 +1254,9 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
       const params = parsed.params || {};
       console.log('[DEBUG] params:', params);
       
-      // Create the Tone.js sound
-      console.log('[DEBUG] calling createGeneratedSound...');
-      const toneSource = createGeneratedSound(params, layerId, name);
+      // Create the Tone.js sound - pass soundType from parsed, not params
+      console.log('[DEBUG] calling createGeneratedSound with soundType:', parsed.soundType);
+      const toneSource = createGeneratedSound(params, layerId, name, parsed.soundType);
       console.log('[DEBUG] toneSource:', toneSource);
       
       if (!toneSource) {

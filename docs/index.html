@@ -1871,7 +1871,52 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
       console.log('[DEBUG processAIResponse] START, responseText length:', responseText.length);
       try {
         // Try to extract ALL JSON objects from the response
-        const jsonMatches = responseText.match(/\{[\s\S]*?\}/g);
+        // Use a regex that properly handles nested braces
+        let jsonMatches = [];
+        
+        // Try direct JSON parse first (in case entire response is JSON)
+        try {
+          const directParse = JSON.parse(responseText);
+          jsonMatches = [responseText];
+        } catch {
+          // Fallback: extract JSON objects using a brace-counting approach
+          let depth = 0;
+          let start = -1;
+          let inString = false;
+          let escaped = false;
+          
+          for (let i = 0; i < responseText.length; i++) {
+            const char = responseText[i];
+            
+            if (escaped) {
+              escaped = false;
+              continue;
+            }
+            if (char === '\\' && inString) {
+              escaped = true;
+              continue;
+            }
+            if (char === '"' && !escaped) {
+              inString = !inString;
+              continue;
+            }
+            
+            if (!inString) {
+              if (char === '{') {
+                if (depth === 0) start = i;
+                depth++;
+              } else if (char === '}') {
+                depth--;
+                if (depth === 0 && start !== -1) {
+                  jsonMatches.push(responseText.substring(start, i + 1));
+                  start = -1;
+                }
+              }
+            }
+          }
+        }
+        
+        console.log('[DEBUG processAIResponse] jsonMatches count:', jsonMatches.length);
         console.log('[DEBUG processAIResponse] jsonMatches:', jsonMatches);
         
         if (!jsonMatches || jsonMatches.length === 0) {

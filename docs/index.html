@@ -1270,44 +1270,44 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
 
     // Handle generated sound from AI response
     function handleGeneratedSound(parsed) {
-// 
-      const layerId = `gen_${++generatedLayerCounter}`;
-      const name = parsed.name || 'Generated Sound';
-      const params = parsed.params || {};
-// 
-      
-      // Create the Tone.js sound - pass soundType from parsed, not params
-// 
-      const toneSource = createGeneratedSound(params, layerId, name, parsed.soundType);
-// 
-      
-      if (!toneSource) {
-// 
-        addChatMessage(`⚠️ Could not create sound: unknown error`, 'ai');
-        return;
+      try {
+        const layerId = `gen_${++generatedLayerCounter}`;
+        const name = parsed.name || 'Generated Sound';
+        const params = parsed.params || {};
+        
+        // Create the Tone.js sound - pass soundType from parsed, not params
+        const toneSource = createGeneratedSound(params, layerId, name, parsed.soundType);
+        
+        if (!toneSource) {
+          addChatMessage(`⚠️ Could not create sound`, 'ai');
+          return;
+        }
+        
+        // Layer object WITHOUT toneSource (safe for localStorage)
+        const layer = {
+          id: layerId,
+          name: name,
+          icon: '🎵',
+          type: 'generated',
+          soundType: parsed.soundType || 'noise',
+          params: params,
+          volume: params.volume ?? 0.5,
+          reverb: params.reverb ?? 0.3,
+          echo: params.echo ?? 0.1,
+          active: true
+        };
+        
+        generatedLayers.push(layer);
+        activeLayers.add(layerId);
+        saveGeneratedLayers();
+        
+        addChatMessage(`✅ '${name}' added! 🎵`, 'ai');
+        renderLayers();
+        updateActiveMix();
+        updatePlayButton();
+      } catch (e) {
+        addChatMessage(`⚠️ Error: ${e.message}`, 'ai');
       }
-      
-      // Layer object WITHOUT toneSource (safe for localStorage)
-      const layer = {
-        id: layerId,
-        name: name,
-        icon: '🎵',
-        type: 'generated',
-        soundType: params.soundType || 'noise',
-        params: params,
-        volume: params.volume ?? 0.5,
-        reverb: params.reverb ?? 0.3,
-        echo: params.echo ?? 0.1,
-        active: true
-        // NO toneSource here!
-      };
-      
-      generatedLayers.push(layer);
-      activeLayers.add(layerId);
-      saveGeneratedLayers();
-      
-      addChatMessage(`✅ Created and added '${name}' to your mix!`, 'ai');
-      renderLayers();
     }
 
     // Delete a generated layer

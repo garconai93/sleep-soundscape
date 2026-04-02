@@ -1509,17 +1509,18 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
 
       const layerEl = document.getElementById(`layer-${id}`);
       const status = document.getElementById(`status-${id}`);
+      const sourceObj = generatedSources.find(s => s.id === id);
 
       if (activeLayers.has(id)) {
         activeLayers.delete(id);
         layer.active = false;
-        layerEl.classList.remove('active');
-        status.textContent = 'Tap to add';
+        if (layerEl) layerEl.classList.remove('active');
+        if (status) status.textContent = 'Tap to add';
         
         // Stop Tone.js source
-        if (layer.toneSource) {
+        if (sourceObj && sourceObj.source) {
           try {
-            layer.toneSource.stop();
+            sourceObj.source.stop();
           } catch (e) {}
         }
         if (layer.audioElement) {
@@ -1528,21 +1529,15 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
       } else {
         activeLayers.add(id);
         layer.active = true;
-        layerEl.classList.add('active');
-        status.textContent = '● Playing';
+        if (layerEl) layerEl.classList.add('active');
+        if (status) status.textContent = '● Playing';
         
         // Play Tone.js source
         if (layer.type === 'generated' && layer.soundType) {
-          if (!layer.toneSource || layer.toneSource.disposed) {
-            layer.toneSource = createGeneratedSound(layer.params, layer.id, layer.name);
-          }
-          // For continuous sounds, we need to restart them
-          if (layer.soundType === 'noise') {
-            // Noise needs to be restarted
-            const sourceObj = generatedSources.find(s => s.id === id);
-            if (sourceObj && sourceObj.source && !sourceObj.source.context.state) {
-              sourceObj.source.start();
-            }
+          // Recreate sound if needed
+          const newSource = createGeneratedSound(layer.params, layer.id, layer.name, layer.soundType);
+          if (newSource) {
+            // Volume is set inside createGeneratedSound
           }
         } else if (layer.audioElement) {
           if (isPlaying) {
@@ -1562,10 +1557,21 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
       if (!layer) return;
 
       layer.volume = value / 100;
-      document.getElementById(`val-${id}`).textContent = value;
+      const valEl = document.getElementById(`val-${id}`);
+      if (valEl) valEl.textContent = value;
       
       const slider = document.getElementById(`vol-${id}`);
-      slider.style.background = `linear-gradient(to right, #10b981 ${value}%, var(--bg-secondary) ${value}%)`;
+      if (slider) {
+        slider.style.background = `linear-gradient(to right, #10b981 ${value}%, var(--bg-secondary) ${value}%)`;
+      }
+
+      // Update Tone.js source volume
+      const sourceObj = generatedSources.find(s => s.id === id);
+      if (sourceObj && sourceObj.source) {
+        try {
+          sourceObj.source.volume.value = Tone.gainToDb(layer.volume);
+        } catch (e) {}
+      }
 
       if (layer.audioElement) {
         layer.audioElement.volume = layer.volume * masterVolume / 100;

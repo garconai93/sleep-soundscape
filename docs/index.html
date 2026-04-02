@@ -1038,49 +1038,49 @@
     const GROQ_MODEL = 'llama-3.3-70b-versatile';
     const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
-    const GROQ_SYSTEM_PROMPT = `You are a sound designer AI for SleepSoundscape. You create AMBIENT MUSIC and SOUNDSCAPES using Tone.js.
+    const GROQ_SYSTEM_PROMPT = `You are a sound designer AI for SleepSoundscape. You generate AMBIENT SOUNDS using Tone.js parameters.
 
-TONE.JS MUSIC TYPES:
+TONE.JS SOUND TYPES you can create:
 
-1. POLYSYNTH MELODY (BEST for music) - creates melodies with multiple notes:
-   Use soundType: "polysynth"
-   params: {
-     "notes": ["C4","E4","G4","C5","E5","G4","C4","E4"], // array of notes
-     "noteDuration": "4n", // note length: "8n", "4n", "2n", "1n"
-     "tempo": 60-120, // beats per minute
-     "volume": 0.3, // 0.0 to 1.0
-     "reverb": 0.5,
-     "echo": 0.2,
-     "oscType": "sine" // or "triangle", "square"
-   }
-   Melodies LOOP continuously!
-
-2. NOISE (for ambient texture):
-   - noiseType: "white_noise", "pink_noise", "brown_noise"
+1. NOISE sounds (use Tone.Noise):
+   - "white_noise" - all frequencies
+   - "pink_noise" - filtered white noise  
+   - "brown_noise" - deep filtered noise
    
-3. OSCILLATOR (simple tones - AVOID for music, use polysynth instead):
-   - Just single frequencies, not musical
+2. OSCILLATOR sounds (use Tone.Oscillator):
+   - Types: "sine", "square", "triangle", "sawtooth"
+   - Frequencies: 20Hz to 2000Hz
+   
+3. MEMBRANE sounds (use Tone.MembraneSynth)
+4. METAL sounds (use Tone.MetalSynth)
+5. SAMPLES from URLs (use Tone.Player with a URL)
 
-4. MEMBRANE (deep drum-like sounds)
-5. METAL (metallic percussion sounds)
+EFFECTS you can apply:
+- reverb: 0.0 to 1.0 (use Tone.Reverb)
+- echo: 0.0 to 1.0 (use Tone.FeedbackEcho)
+- delay: 0.0 to 1.0 (use Tone.FeedbackDelay)
+- filter: frequency in Hz (use Tone.Filter)
 
 IMPORTANT RULES:
-1. For MUSIC requests → ALWAYS use soundType: "polysynth" with an notes array
-2. For AMBIENT/SCAPE requests → use noise types
-3. Respond ONLY with valid JSON - no explanations
-4. NEVER invent URLs for audio files
-5. When in doubt, use polysynth with a nice chord progression
+1. ALWAYS respond with valid JSON only - no explanations
+2. ALWAYS use "type": "generated" for new sounds
+3. NEVER use existing sound IDs like "rain" or "thunder"
+4. NEVER invent URLs for audio files - only use Tone.js synthesis
 
-EXAMPLE RESPONSES:
+Respond ONLY with this JSON format:
+{
+  "type": "generated",
+  "name": "Ocean with Dolphins",
+  "soundType": "noise" | "oscillator" | "membrane" | "metal" | "sample",
+  "params": {
+    // For noise: {"noiseType": "pink", "volume": 0.3, "reverb": 0.5, "echo": 0.2}
+    // For oscillator: {"oscType": "sine", "frequency": 220, "volume": 0.4, "reverb": 0.6}
+    // For membrane: {"pitch": "C2", "volume": 0.5, "decay": 0.5, "reverb": 0.3}
+    // For metal: {"pitch": "C4", "volume": 0.4, "decay": 0.2, "reverb": 0.7}
+  }
+}
 
-For "restaurant music":
-{"type": "generated", "name": "Restaurant Ambient", "soundType": "polysynth", "params": {"notes": ["E3","G3","B3","E4","B3","G3","E3","G3"], "noteDuration": "4n", "tempo": 80, "volume": 0.25, "reverb": 0.6, "echo": 0.1, "oscType": "sine"}}
-
-For "ocean waves":
-{"type": "generated", "name": "Ocean Waves", "soundType": "noise", "params": {"noiseType": "brown_noise", "volume": 0.4, "reverb": 0.7, "echo": 0.2}}
-
-For "relaxing piano":
-{"type": "generated", "name": "Piano Melody", "soundType": "polysynth", "params": {"notes": ["C4","E4","G4","E4","C4","G3","E3","C4"], "noteDuration": "4n", "tempo": 70, "volume": 0.3, "reverb": 0.5, "echo": 0.1, "oscType": "triangle"}};
+If user asks for clarification: {"type": "clarify", "message": "what do you mean?"}`;
 
     // Sound Configuration
     const SOUNDS = [
@@ -1178,60 +1178,6 @@ For "relaxing piano":
             osc.start();
             toneNode = osc;
             source = osc;
-            break;
-          case 'polysynth':
-            // Create a looping melody with PolySynth
-            const notes = params.notes || ['C4', 'E4', 'G4', 'C5'];
-            const noteDuration = params.noteDuration || '4n';
-            const tempo = params.tempo || 80;
-            const oscType = params.oscType || 'sine';
-            
-            const polySynth = new Tone.PolySynth(Tone.Synth, {
-              oscillator: { type: oscType },
-              envelope: {
-                attack: 0.05,
-                decay: 0.3,
-                sustain: 0.5,
-                release: 1
-              }
-            }).toDestination();
-            
-            // Set volume
-            polySynth.volume.value = Tone.gainToDb(params.volume ?? 0.3);
-            
-            // Apply reverb to polySynth if needed
-            if (params.reverb && params.reverb > 0) {
-              const reverb = new Tone.Reverb({ decay: params.reverb * 5 + 0.5, wet: params.reverb }).toDestination();
-              polySynth.connect(reverb);
-            }
-            
-            // Apply echo if needed
-            if (params.echo && params.echo > 0) {
-              const echo = new Tone.FeedbackEcho({ delayTime: 0.3, feedback: params.echo * 0.8, wet: params.echo }).toDestination();
-              polySynth.connect(echo);
-            }
-            
-            // Schedule a repeating sequence of notes
-            let noteIndex = 0;
-            const scheduleNote = () => {
-              if (!generatedSources.find(s => s.id === layerId)) return; // Stop if removed
-              const note = notes[noteIndex % notes.length];
-              polySynth.triggerAttackRelease(note, noteDuration);
-              noteIndex++;
-            };
-            
-            // Schedule repeating notes based on tempo
-            const intervalMs = (60 / tempo) * 1000 * 0.25; // quarter notes
-            const intervalId = setInterval(scheduleNote, intervalMs);
-            
-            toneNode = polySynth;
-            source = { 
-              id: layerId,
-              stop: () => { 
-                clearInterval(intervalId); 
-                polySynth.dispose(); 
-              } 
-            };
             break;
           case 'membrane':
             toneNode = new Tone.MembraneSynth({

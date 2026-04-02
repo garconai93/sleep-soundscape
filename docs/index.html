@@ -1244,12 +1244,22 @@ If user asks for clarification: {"type": "clarify", "message": "what do you mean
 
     // Handle generated sound from AI response
     function handleGeneratedSound(parsed) {
+      console.log('[DEBUG] handleGeneratedSound called with:', parsed);
       const layerId = `gen_${++generatedLayerCounter}`;
       const name = parsed.name || 'Generated Sound';
       const params = parsed.params || {};
+      console.log('[DEBUG] params:', params);
       
       // Create the Tone.js sound
+      console.log('[DEBUG] calling createGeneratedSound...');
       const toneSource = createGeneratedSound(params, layerId, name);
+      console.log('[DEBUG] toneSource:', toneSource);
+      
+      if (!toneSource) {
+        console.log('[DEBUG] createGeneratedSound returned null!');
+        addChatMessage(`⚠️ Could not create sound: unknown error`, 'ai');
+        return;
+      }
       
       const layer = {
         id: layerId,

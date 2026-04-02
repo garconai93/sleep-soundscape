@@ -1040,11 +1040,27 @@
 
     const GROQ_SYSTEM_PROMPT = `You are an AI assistant for SleepSoundscape, a web app that creates ambient soundscapes by layering sounds.
 
-SOUNDS AVAILABLE: Rain, Heavy Rain, Thunder, Wind, Fire Crackling, Birds, Ocean Waves, Forest, Night Crickets, River Stream, White Noise, Brown Noise, Pink Noise, Cafe Murmur, Train, Airplane, Heartbeat, Bowls, Tambura
+AVAILABLE SOUNDS (use ONLY these IDs): rain, thunder, wind, fire, cafe, train, reading, study, work
 
 Each sound has parameters: volume (0-1), detune (-1200 to 1200), reverb (0-1), echo (0-1), playbackRate (0.5-2.0), loop (bool)
 
+ID REFERENCE:
+- "rain" = Rain 🌧️
+- "thunder" = Thunder ⛈️
+- "wind" = Wind 💨
+- "fire" = Fire 🔥
+- "cafe" = Cafe ☕
+- "train" = Train 🚂
+- "reading" = Reading 📚
+- "study" = Study 📖
+- "work" = Work 💼
+
 MUSIC: Use Tone.Synth/PolySynth for melodies. Parameters: notes (array like ["C4","E4"]), duration, tempo, volume.
+
+IMPORTANT RULES:
+1. ALWAYS use sound IDs from the list above ONLY
+2. NEVER invent new sounds like "keyboard typing" or "white noise" - they don't exist
+3. If user asks for something you can't do with available sounds, respond with JSON: {"type": "error", "message": "Sorry, I can only use these sounds: rain, thunder, wind, fire, cafe, train, reading, study, work"}
 
 Respond ONLY with valid JSON:
 - For sounds: {"type": "layer", "sound": "rain", "params": {"volume": 0.7, "reverb": 0.5, "echo": 0.2}}
@@ -1661,16 +1677,22 @@ Respond ONLY with valid JSON:
         }
 
         // Process each JSON object
+        let addedCount = 0;
         for (const jsonStr of jsonMatches) {
           try {
             const parsed = JSON.parse(jsonStr);
             
             switch (parsed.type) {
               case 'layer':
-                await handleLayerRequest(parsed);
+                const added = await handleLayerRequest(parsed);
+                if (added) addedCount++;
                 break;
               case 'music':
                 handleMusicRequest(parsed);
+                addedCount++;
+                break;
+              case 'error':
+                addChatMessage(`⚠️ ${parsed.message}`, 'ai');
                 break;
               case 'clarify':
                 addChatMessage(parsed.message, 'ai');
@@ -1685,8 +1707,10 @@ Respond ONLY with valid JSON:
           }
         }
         
-        // Show success message after processing
-        addChatMessage('✅ Layers added to your mix!', 'ai');
+        // Show success message only if something was actually added
+        if (addedCount > 0) {
+          addChatMessage(`✅ ${addedCount} layer(s) added to your mix!`, 'ai');
+        }
 
       } catch (e) {
         // If everything fails, just show the response
@@ -1711,47 +1735,27 @@ Respond ONLY with valid JSON:
         }
       }
 
-      if (soundId && audioElements[soundId]) {
-        // Use existing sound
-        const volume = params.volume ?? 0.7;
-        const sound = SOUNDS.find(s => s.id === soundId);
-        
-        volumes[soundId] = Math.round(volume * 100);
-        if (audioElements[soundId]) {
-          audioElements[soundId].volume = volume * masterVolume / 100;
-        }
-        
-        if (!activeLayers.has(soundId)) {
-          activeLayers.add(soundId);
-        }
-        
-        addChatMessage(`✅ Added '${sound.name}' to your mix! (Volume: ${Math.round(volume * 100)}%)`, 'ai');
-        
-        renderLayers();
-      } else {
-        // Create a generated layer
-        const layerId = `gen_${++generatedLayerCounter}`;
-        const layer = {
-          id: layerId,
-          name: soundName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-          icon: '🎵',
-          type: 'sound',
-          volume: params.volume ?? 0.7,
-          reverb: params.reverb ?? 0.3,
-          echo: params.echo ?? 0.1,
-          playbackRate: params.playbackRate ?? 1.0,
-          active: true,
-          audioElement: null
-        };
-        
-        generatedLayers.push(layer);
-        activeLayers.add(layerId);
-        saveGeneratedLayers();
-        
-        addChatMessage(`✅ Created and added '${layer.name}' to your mix!`, 'ai');
-        renderLayers();
+      // Check if sound exists in our available sounds
+      if (!soundId || !audioElements[soundId]) {
+        addChatMessage(`⚠️ Sorry, I don't have a '${soundName}' sound. Available: rain, thunder, wind, fire, cafe, train, reading, study, work`, 'ai');
+        return false;
       }
-    }
+
+      // Use existing sound
+      const volume = params.volume ?? 0.7;
+      const sound = SOUNDS.find(s => s.id === soundId);
+      
+      volumes[soundId] = Math.round(volume * 100);
+      if (audioElements[soundId]) {
+        audioElements[soundId].volume = volume * masterVolume / 100;
+      }
+      
+      if (!activeLayers.has(soundId)) {
+        activeLayers.add(soundId);
+      }
+      
+      renderLayers();
+      return true;
 
     function handleMusicRequest(parsed) {
       const instrument = parsed.instrument || 'synth';
